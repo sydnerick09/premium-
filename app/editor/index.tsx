@@ -371,7 +371,13 @@ export default function EditorScreen() {
     setIsSaving(true);
     haptic.light();
     try {
-      updateProject(id, { editedImageUri: currentUri, status: 'completed', updatedAt: new Date().toISOString() });
+      const bakedUri = await imageProcessor.bake(currentUri, {
+        adjustments,
+        filter: activeFilter,
+        filterIntensity,
+        beauty: beautyValues,
+      });
+      updateProject(id, { editedImageUri: bakedUri, status: 'completed', updatedAt: new Date().toISOString() });
       haptic.success();
       Alert.alert('Saved!', 'Your project has been saved.', [
         { text: 'OK' },

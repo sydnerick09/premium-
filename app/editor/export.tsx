@@ -10,6 +10,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useEditorStore } from '../../store/editorStore';
 import { useAuthStore } from '../../store/authStore';
 import { exportService } from '../../services/image/exportService';
+import { imageProcessor } from '../../services/image/imageProcessor.service';
+import { FilterCatalog } from '../../constants/FilterCatalog';
 import { haptic } from '../../utils/haptics';
 import { Colors } from '../../constants/Colors';
 import { Layout } from '../../constants/Layout';
@@ -33,8 +35,9 @@ const RESOLUTION_OPTIONS: { id: Resolution; label: string; desc: string }[] = [
 const QUALITY_MARKS = [60, 70, 80, 90, 95, 100];
 
 export default function ExportScreen() {
-  const { currentUri } = useEditorStore();
+  const { currentUri, adjustments, activeFilterId, filterIntensity, beautyValues } = useEditorStore();
   const { user } = useAuthStore();
+  const activeFilter = activeFilterId ? FilterCatalog.find((f) => f.id === activeFilterId) ?? null : null;
 
   const [format, setFormat] = useState<ExportFormat>('jpeg');
   const [quality, setQuality] = useState(90);
@@ -60,7 +63,16 @@ export default function ExportScreen() {
       if (resolution === '2x') maxDimension = 2560;
       if (resolution === '4k') maxDimension = 3840;
 
-      const result = await exportService.export(currentUri, {
+      // Bake live adjustments + active filter into the pixels so the exported
+      // file matches the on-screen preview (real edit on web; no-op on native).
+      const bakedUri = await imageProcessor.bake(currentUri, {
+        adjustments,
+        filter: activeFilter,
+        filterIntensity,
+        beauty: beautyValues,
+      });
+
+      const result = await exportService.export(bakedUri, {
         format,
         quality: quality / 100,
         maxDimension,

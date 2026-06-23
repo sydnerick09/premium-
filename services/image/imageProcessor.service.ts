@@ -131,6 +131,14 @@ class ImageProcessorService {
     if (info.exists) await FileSystem.deleteAsync(uri, { idempotent: true });
   }
 
+  // ─── Bake edits (web parity) ─────────────────────────────────────────────
+  // Native renders adjustments/filters as a live preview; baking into pixels is
+  // handled on web via canvas. Here we pass through so the shared export call
+  // works on every platform.
+  async bake(uri: string, _opts: unknown): Promise<string> {
+    return uri;
+  }
+
   // ─── Adjustment simulation (via color matrix) ────────────────────────────
   buildColorMatrixFromAdjustments(adj: Partial<AdjustmentValues>): number[] {
     // Build a 4×5 flat color matrix applying basic linear adjustments.
