@@ -1,0 +1,101 @@
+import React from 'react';
+import {
+  View, Text, StyleSheet, ScrollView,
+  TouchableOpacity, FlatList,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
+import { useSettingsStore } from '../../store/settingsStore';
+import { Colors } from '../../constants/Colors';
+import { Layout } from '../../constants/Layout';
+
+const TUTORIALS = [
+  { id: '1', title: 'Cinematic Color Grading', duration: '3 min', icon: '🎬', gradient: Colors.gradients.primary },
+  { id: '2', title: 'Perfect Portrait Retouching', duration: '5 min', icon: '👤', gradient: Colors.gradients.accent },
+  { id: '3', title: 'Landscape HDR Effect', duration: '4 min', icon: '🏔', gradient: ['#10B981', '#0891B2'] },
+  { id: '4', title: 'Vintage Film Look', duration: '3 min', icon: '🎞', gradient: Colors.gradients.gold },
+];
+
+const TIPS = [
+  { id: '1', tip: 'Use the AI Enhance button for a quick one-tap improvement on any photo.' },
+  { id: '2', tip: 'Stack multiple filters at reduced opacity for a unique look.' },
+  { id: '3', tip: 'The healing brush works best on uniform backgrounds.' },
+  { id: '4', tip: 'Shoot in RAW mode for maximum editing flexibility.' },
+  { id: '5', tip: 'Use the curves tool for precise tonal adjustments.' },
+];
+
+export default function ExploreScreen() {
+  const isDark = useSettingsStore((s) => s.isDarkMode);
+  const bg = isDark ? Colors.dark.background : Colors.light.background;
+  const card = isDark ? Colors.dark.card : Colors.light.card;
+  const textPrimary = isDark ? Colors.text.primary : Colors.text.inverse;
+  const textSecondary = isDark ? Colors.text.secondary : Colors.text.inverseSecondary;
+
+  return (
+    <View style={[styles.container, { backgroundColor: bg }]}>
+      <SafeAreaView edges={['top']}>
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: textPrimary }]}>Explore</Text>
+        </View>
+      </SafeAreaView>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        <Text style={[styles.sectionTitle, { color: textPrimary }]}>Tutorials</Text>
+        {TUTORIALS.map((t) => (
+          <TouchableOpacity key={t.id} style={[styles.tutorialCard, { backgroundColor: card }]}>
+            <LinearGradient colors={t.gradient as [string, string]} style={styles.tutorialIcon}>
+              <Text style={{ fontSize: 28 }}>{t.icon}</Text>
+            </LinearGradient>
+            <View style={styles.tutorialInfo}>
+              <Text style={[styles.tutorialTitle, { color: textPrimary }]}>{t.title}</Text>
+              <Text style={[styles.tutorialDuration, { color: textSecondary }]}>{t.duration} read</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+
+        <Text style={[styles.sectionTitle, { color: textPrimary }]}>Pro Tips</Text>
+        {TIPS.map((t) => (
+          <View key={t.id} style={[styles.tipCard, { backgroundColor: card }]}>
+            <Text style={styles.tipBullet}>✦</Text>
+            <Text style={[styles.tipText, { color: textSecondary }]}>{t.tip}</Text>
+          </View>
+        ))}
+
+        <TouchableOpacity onPress={() => router.push('/premium')} style={styles.unlockMore}>
+          <LinearGradient colors={Colors.gradients.primary} style={styles.unlockGradient}>
+            <Text style={styles.unlockText}>✦ Unlock Premium Features</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <View style={{ height: Layout.tabBarHeight + 20 }} />
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  header: { paddingHorizontal: 24, paddingVertical: 16 },
+  title: { fontSize: Layout.fontSize['3xl'], fontFamily: 'Poppins_700Bold' },
+  scroll: { paddingTop: 8 },
+  sectionTitle: { fontSize: Layout.fontSize.lg, fontFamily: 'Poppins_700Bold', paddingHorizontal: 24, marginBottom: 12, marginTop: 8 },
+  tutorialCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+    marginHorizontal: 24, marginBottom: 12,
+    borderRadius: Layout.radius.lg, padding: 16,
+  },
+  tutorialIcon: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  tutorialInfo: { flex: 1 },
+  tutorialTitle: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_600SemiBold' },
+  tutorialDuration: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', marginTop: 2 },
+  tipCard: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+    marginHorizontal: 24, marginBottom: 10,
+    borderRadius: Layout.radius.md, padding: 14,
+  },
+  tipBullet: { fontSize: 14, color: Colors.primary, marginTop: 1 },
+  tipText: { flex: 1, fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_400Regular', lineHeight: 20 },
+  unlockMore: { marginHorizontal: 24, marginTop: 24, borderRadius: Layout.radius.lg, overflow: 'hidden' },
+  unlockGradient: { paddingVertical: 16, alignItems: 'center' },
+  unlockText: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_700Bold', color: Colors.white, letterSpacing: 0.5 },
+});
