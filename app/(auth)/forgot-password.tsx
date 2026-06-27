@@ -4,7 +4,7 @@ import {
   TouchableOpacity, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@components/ui/SolidGradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';

@@ -7,6 +7,8 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+// Vignette is a functional image-edit effect (edge darkening), so it keeps the
+// real gradient — it is not decorative chrome.
 import { LinearGradient } from 'expo-linear-gradient';
 import Slider from '@react-native-community/slider';
 import { useEditorStore } from '../../store/editorStore';
@@ -260,7 +262,7 @@ const styles = StyleSheet.create({
   previewEmpty: { alignItems: 'center', justifyContent: 'center' },
   filterBadge: {
     position: 'absolute', bottom: 12, left: 12,
-    backgroundColor: 'rgba(124,58,237,0.9)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4,
+    backgroundColor: '#7C3AED', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4,
   },
   filterBadgeText: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_600SemiBold', color: Colors.white },
   categories: { paddingHorizontal: 16, gap: 8, paddingVertical: 8 },

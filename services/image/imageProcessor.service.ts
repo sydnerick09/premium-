@@ -138,6 +138,91 @@ class ImageProcessorService {
   async bake(uri: string, _opts: unknown): Promise<string> {
     return uri;
   }
+  async straighten(uri: string, _opts?: { angle?: number; skewH?: number; skewV?: number }): Promise<string> {
+    return uri;
+  }
+
+  // ─── Background replacement (web parity) ─────────────────────────────────
+  // Real per-pixel background replacement runs on web via canvas
+  // (imageProcessor.service.web.ts). On native we pass the original through so
+  // the shared call site compiles; the screen falls back to a preview-only flow.
+  async replaceBackground(uri: string, _bg: unknown, _options?: unknown): Promise<string> {
+    return uri;
+  }
+
+  // AI cutout + composite run on web (canvas + WASM model). Native stubs keep
+  // the shared call sites compiling.
+  async removeBackgroundCutout(_uri: string): Promise<string | null> {
+    return null;
+  }
+  async compositeBackground(cutoutUri: string, _bg: unknown): Promise<string> {
+    return cutoutUri;
+  }
+  async blurBackground(uri: string, _options?: unknown): Promise<string> {
+    return uri;
+  }
+  async applyEffect(uri: string, _effect: string, _intensity = 1): Promise<string> {
+    return uri;
+  }
+  async squarePad(uri: string, _options?: unknown): Promise<string> {
+    return uri;
+  }
+  async composeCollage(uris: string[], _layout: unknown, _options?: unknown): Promise<string> {
+    return uris[0] ?? '';
+  }
+  async applyBeautyLocalized(uri: string, _beauty: unknown): Promise<string> {
+    return uri;
+  }
+  async composeCutoutShape(
+    uri: string,
+    _opts?: { shape?: string; glyph?: string; size?: number; feather?: number },
+  ): Promise<string> {
+    return uri;
+  }
+  async applyMakeup(
+    uri: string,
+    _opts?: { lipColor?: string; blushColor?: string; intensity?: number },
+  ): Promise<string> {
+    return uri;
+  }
+  async applyWrinkleSmooth(uri: string, _opts?: { intensity?: number }): Promise<string> {
+    return uri;
+  }
+  async applyDarkCircleFix(uri: string, _opts?: { intensity?: number }): Promise<string> {
+    return uri;
+  }
+  async reshapeFace(uri: string, _opts?: { amount?: number }): Promise<string> {
+    return uri;
+  }
+  async scanDocument(uri: string, _opts?: { mode?: 'bw' | 'gray' | 'color' }): Promise<string> {
+    return uri;
+  }
+  async composePoster(opts: {
+    template?: string;
+    bg: { kind: 'color'; color: string } | { kind: 'gradient'; colors: [string, string] };
+    photoUri?: string | null;
+    title?: string;
+    subtitle?: string;
+    footer?: string;
+    textColor?: string;
+  }): Promise<string> {
+    return opts.photoUri ?? '';
+  }
+  async composeLogo(opts: {
+    template?: string;
+    bg: { kind: 'color'; color: string } | { kind: 'gradient'; colors: [string, string]; stop?: number };
+    symbol?: string;
+    photoUri?: string | null;
+    usePhoto?: boolean;
+    brand?: string;
+    tagline?: string;
+    contact?: string;
+    textColor?: string;
+    font?: { brand: string; tag: string; weight: string };
+    textShape?: 'straight' | 'arcUp' | 'arcDown' | 'angled';
+  }): Promise<string> {
+    return opts.photoUri ?? '';
+  }
 
   // ─── Adjustment simulation (via color matrix) ────────────────────────────
   buildColorMatrixFromAdjustments(adj: Partial<AdjustmentValues>): number[] {

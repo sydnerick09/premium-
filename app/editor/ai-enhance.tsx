@@ -6,7 +6,7 @@ import {
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@components/ui/SolidGradient';
 import { useEditorStore } from '../../store/editorStore';
 import { aiEnhancement } from '../../services/image/aiEnhancement.service';
 import { haptic } from '../../utils/haptics';
@@ -422,8 +422,8 @@ const styles = StyleSheet.create({
 
   predictionBanner: {
     flexDirection: 'row', gap: 8, alignItems: 'flex-start',
-    backgroundColor: `${Colors.primary}18`, borderRadius: Layout.radius.md,
-    padding: 12, marginBottom: 14, borderWidth: 0.5, borderColor: `${Colors.primary}40`,
+    backgroundColor: '#0C1C16', borderRadius: Layout.radius.md,
+    padding: 12, marginBottom: 14, borderWidth: 0.5, borderColor: Colors.primary,
   },
   predictionBannerText: { flex: 1, fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.secondary, lineHeight: 18 },
 });

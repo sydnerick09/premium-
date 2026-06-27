@@ -76,6 +76,12 @@ class AuthService {
     }
   }
 
+  async signInWithProvider(_provider: 'google' | 'facebook' | 'apple'): Promise<User> {
+    // Native Google/Facebook OAuth requires the configured mobile app build
+    // (google-services / OAuth client IDs). On web this is fully functional.
+    throw new Error('Social sign-in is available in the mobile app build. Please use your email & password here.');
+  }
+
   async signOut(): Promise<void> {
     await auth().signOut();
   }

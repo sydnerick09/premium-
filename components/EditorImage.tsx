@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { View, StyleSheet, LayoutChangeEvent, Image as RNImage } from 'react-native';
 import { Image } from 'expo-image';
+// Vignette is a functional image-edit effect (edge darkening), so it keeps the
+// real gradient — it is not decorative chrome.
 import { LinearGradient } from 'expo-linear-gradient';
 import { AdjustmentValues, BeautyValues } from '../types';
 import { Filter } from '../constants/FilterCatalog';

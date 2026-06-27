@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@components/ui/SolidGradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../store/authStore';
 import { useProjectStore } from '../../store/projectStore';
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
     padding: 16,
     margin: 8,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: Colors.dark.card,
     borderRadius: 24,
   },
   content: {

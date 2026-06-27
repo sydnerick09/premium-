@@ -6,8 +6,8 @@ import {
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import Slider from '@react-native-community/slider';
+import { LinearGradient } from '@components/ui/SolidGradient';
+import AppSlider from '../../components/AppSlider';
 import { useEditorStore } from '../../store/editorStore';
 import EditorImage from '../../components/EditorImage';
 import { FilterCatalog } from '../../constants/FilterCatalog';
@@ -60,6 +60,7 @@ export default function AdjustmentsScreen() {
   };
 
   const hasChanges = Object.values(adjustments).some((v) => v !== 0);
+  const activeAdj = activeKey ? ADJUSTMENTS.find((a) => a.key === activeKey) ?? null : null;
 
   return (
     <View style={styles.container}>
@@ -84,9 +85,9 @@ export default function AdjustmentsScreen() {
         </View>
       </SafeAreaView>
 
-      {/* Live preview — effects applied directly to the image pixels */}
-      {currentUri && (
-        <View style={styles.preview}>
+      {/* Live preview — fills the screen so you can clearly see every edit */}
+      <View style={styles.preview}>
+        {currentUri && (
           <EditorImage
             uri={currentUri}
             adjustments={adjustments}
@@ -95,62 +96,69 @@ export default function AdjustmentsScreen() {
             beauty={beautyValues}
             radius={Layout.radius.xl}
           />
+        )}
+      </View>
 
-          {/* Active adjustment label */}
-          {activeKey && (
-            <View style={styles.activeLabel}>
-              <Text style={styles.activeLabelText}>
-                {activeKey.charAt(0).toUpperCase() + activeKey.slice(1)}: {
-                  adjustments[activeKey] > 0 ? `+${adjustments[activeKey].toFixed(0)}` : adjustments[activeKey].toFixed(0)
-                }
+      {/* Controls dock — single slider for the active control + a HORIZONTAL
+          row of adjustment icons. Keeps the image area as large as possible. */}
+      <SafeAreaView edges={['bottom']} style={styles.dock}>
+        {activeAdj ? (
+          <View style={styles.sliderBar}>
+            <View style={styles.sliderLabelRow}>
+              <Text style={styles.sliderName}>{activeAdj.label}</Text>
+              <Text style={styles.sliderValue}>
+                {adjustments[activeAdj.key] > 0
+                  ? `+${adjustments[activeAdj.key].toFixed(0)}`
+                  : adjustments[activeAdj.key].toFixed(0)}
               </Text>
             </View>
-          )}
-        </View>
-      )}
+            <AppSlider
+              style={styles.slider}
+              minimumValue={activeAdj.min}
+              maximumValue={activeAdj.max}
+              step={activeAdj.step}
+              value={adjustments[activeAdj.key]}
+              onValueChange={(v) => updateAdjustment(activeAdj.key, v)}
+              onSlidingComplete={() => haptic.selection()}
+              minimumTrackTintColor={Colors.primary}
+              maximumTrackTintColor={Colors.dark.border}
+              thumbTintColor={Colors.white}
+            />
+          </View>
+        ) : (
+          <Text style={styles.hint}>Tap an adjustment below to start editing</Text>
+        )}
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {ADJUSTMENTS.map((adj) => {
-          const value = adjustments[adj.key];
-          const isActive = activeKey === adj.key;
-          return (
-            <TouchableOpacity
-              key={adj.key}
-              onPress={() => setActiveKey(isActive ? null : adj.key)}
-              activeOpacity={0.8}
-              style={[styles.adjRow, isActive && styles.adjRowActive]}
-            >
-              <Ionicons name={adj.icon as any} size={20} color={isActive ? Colors.primary : Colors.text.muted} />
-              <View style={styles.adjInfo}>
-                <View style={styles.adjLabelRow}>
-                  <Text style={[styles.adjLabel, isActive && { color: Colors.primary }]}>
-                    {adj.label}
-                  </Text>
-                  <Text style={[styles.adjValue, value !== 0 && { color: Colors.primary }]}>
-                    {value > 0 ? `+${value.toFixed(0)}` : value.toFixed(0)}
-                  </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}
+        >
+          {ADJUSTMENTS.map((adj) => {
+            const value = adjustments[adj.key];
+            const isActive = activeKey === adj.key;
+            return (
+              <TouchableOpacity
+                key={adj.key}
+                onPress={() => { haptic.selection(); setActiveKey(isActive ? null : adj.key); }}
+                activeOpacity={0.8}
+                style={styles.chip}
+              >
+                <View style={[styles.chipIcon, isActive && styles.chipIconActive]}>
+                  <Ionicons name={adj.icon as any} size={22} color={isActive ? Colors.primary : Colors.text.muted} />
+                  {value !== 0 && <View style={styles.chipDot} />}
                 </View>
-                <Slider
-                  style={styles.slider}
-                  minimumValue={adj.min}
-                  maximumValue={adj.max}
-                  step={adj.step}
-                  value={value}
-                  onValueChange={(v) => {
-                    updateAdjustment(adj.key, v);
-                    setActiveKey(adj.key);
-                  }}
-                  onSlidingComplete={() => haptic.selection()}
-                  minimumTrackTintColor={Colors.primary}
-                  maximumTrackTintColor={Colors.dark.border}
-                  thumbTintColor={Colors.white}
-                />
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-        <View style={{ height: 40 }} />
-      </ScrollView>
+                <Text
+                  style={[styles.chipLabel, isActive && { color: Colors.primary }]}
+                  numberOfLines={1}
+                >
+                  {adj.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 }
@@ -169,30 +177,41 @@ const styles = StyleSheet.create({
   applyGradient:  { paddingHorizontal: 20, paddingVertical: 8 },
   applyText:      { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.white },
 
+  // Image now fills all the space between the header and the controls dock.
   preview: {
-    height: 180, marginHorizontal: 16, marginBottom: 12,
+    flex: 1, marginHorizontal: 16, marginVertical: 12,
     borderRadius: Layout.radius.xl, overflow: 'hidden',
     backgroundColor: Colors.dark.card,
   },
-  previewImage:   { width: '100%', height: '100%' },
-  activeLabel: {
-    position: 'absolute', bottom: 8, left: '50%',
-    transform: [{ translateX: -60 }],
-    backgroundColor: 'rgba(0,0,0,0.65)',
-    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 4,
-  },
-  activeLabelText: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.white },
 
-  scroll:         { paddingHorizontal: 16 },
-  adjRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingVertical: 4, paddingHorizontal: 12,
-    borderRadius: Layout.radius.md, marginBottom: 4,
+  // Bottom controls dock
+  dock: {
+    backgroundColor: Colors.dark.surface,
+    borderTopWidth: 0.5, borderTopColor: Colors.dark.border,
   },
-  adjRowActive:   { backgroundColor: Colors.dark.card },
-  adjInfo:        { flex: 1 },
-  adjLabelRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 },
-  adjLabel:       { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_500Medium', color: Colors.text.secondary },
-  adjValue:       { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.text.muted, minWidth: 36, textAlign: 'right' },
+  sliderBar:      { paddingHorizontal: 20, paddingTop: 8 },
+  sliderLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sliderName:     { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.primary },
+  sliderValue:    { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.text.secondary, minWidth: 36, textAlign: 'right' },
   slider:         { width: '100%', height: 36 },
+  hint: {
+    fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_400Regular',
+    color: Colors.text.muted, textAlign: 'center', paddingVertical: 14,
+  },
+
+  // Horizontal adjustment icon strip
+  chipRow:        { paddingHorizontal: 12, paddingVertical: 8, gap: 6 },
+  chip:           { alignItems: 'center', width: 66, gap: 4 },
+  chipIcon: {
+    width: 52, height: 52, borderRadius: 14,
+    backgroundColor: Colors.dark.card,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: Colors.dark.border,
+  },
+  chipIconActive: { borderColor: Colors.primary, backgroundColor: '#0C1C16' },
+  chipDot: {
+    position: 'absolute', top: 6, right: 6,
+    width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.primary,
+  },
+  chipLabel:      { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: Colors.text.muted, textAlign: 'center' },
 });

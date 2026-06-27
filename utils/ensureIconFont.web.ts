@@ -1,26 +1,46 @@
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Asset } from 'expo-asset';
 
-// On mobile web the Ionicons glyph font sometimes hasn't applied by the time the
-// UI first paints (our root layout renders after a 3s font timeout so a slow
-// network never blanks the screen). Without the font, every icon shows as an
-// empty "tofu" box. Injecting an explicit @font-face with `font-display: swap`
-// makes the browser fetch the bundled glyph font natively and repaint icons the
-// moment it arrives — independent of React's font-loading gate.
+// On web the glyph fonts must be registered as @font-face rules or every icon
+// renders as an empty "tofu" box. expo-font's useFonts does this, but it can race
+// the first paint (our root layout renders after a 3s font timeout). We inject the
+// rules ourselves at startup so icons are reliable.
+//
+// IMPORTANT: on Metro web, `Ionicons.font.Ionicons` is a numeric ASSET ID, not a
+// URL — it must be resolved through expo-asset (`Asset.fromModule().uri`).
+function uriFor(mod: any): string | null {
+  if (mod == null) return null;
+  if (typeof mod === 'string') return mod;
+  try {
+    const a = Asset.fromModule(mod);
+    if (a?.uri) return a.uri;
+  } catch {}
+  return mod.uri ?? mod.default ?? null;
+}
+
 export function ensureIconFont() {
   if (typeof document === 'undefined') return;
-  if (document.getElementById('ionicons-font-face')) return;
+  if (document.getElementById('app-icon-fonts')) return;
 
-  // On web, requiring the .ttf resolves to its served URL string.
-  const mod = (Ionicons as any).font?.Ionicons;
-  const url = typeof mod === 'string' ? mod : mod?.uri ?? mod?.default;
-  if (!url) return;
+  const sets: any[] = [Ionicons, MaterialIcons, MaterialCommunityIcons];
+  let css = '';
+  for (const set of sets) {
+    const fontMap = set?.font as Record<string, any> | undefined;
+    if (!fontMap) continue;
+    for (const family of Object.keys(fontMap)) {
+      const url = uriFor(fontMap[family]);
+      if (url) {
+        css +=
+          `@font-face{font-family:"${family}";` +
+          `src:url(${JSON.stringify(url)}) format("truetype");` +
+          `font-weight:normal;font-style:normal;font-display:swap;}`;
+      }
+    }
+  }
+  if (!css) return;
 
   const style = document.createElement('style');
-  style.id = 'ionicons-font-face';
-  style.textContent =
-    `@font-face{` +
-    `font-family:"Ionicons";` +
-    `src:url(${JSON.stringify(url)}) format("truetype");` +
-    `font-weight:normal;font-style:normal;font-display:swap;}`;
+  style.id = 'app-icon-fonts';
+  style.textContent = css;
   document.head.appendChild(style);
 }

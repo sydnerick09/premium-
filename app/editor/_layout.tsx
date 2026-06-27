@@ -12,6 +12,10 @@ export default function EditorLayout() {
       <Stack.Screen name="export"     options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="ai-enhance" options={{ animation: 'slide_from_right' }} />
       <Stack.Screen name="bg-remove"  options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="collage"    options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="logo"       options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="shapes"     options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="cutout-brush" options={{ animation: 'slide_from_right' }} />
     </Stack>
   );
 }

@@ -6,7 +6,7 @@ import {
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@components/ui/SolidGradient';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../../store/authStore';
 import { useProjectStore } from '../../store/projectStore';
@@ -16,10 +16,17 @@ import { Layout } from '../../constants/Layout';
 
 // ─── Tool tiles shown under the big Photo button ──────────────────────────────
 const TILES = [
-  { id: 'collage',   name: 'Collage',   icon: 'grid-outline',     route: '/editor/creative' },
+  { id: 'collage',   name: 'Collage',   icon: 'grid-outline',     route: '/editor/collage'  },
   { id: 'templates', name: 'Templates', icon: 'albums-outline',   route: '/editor/creative' },
   { id: 'beautify',  name: 'Beautify',  icon: 'sparkles-outline', route: '/editor/beauty'   },
   { id: 'camera',    name: 'Camera',    icon: 'camera-outline',   route: null               },
+] as const;
+
+// ─── Home tools ───────────────────────────────────────────────────────────────
+// Only the Status Saver lives on the home screen; the rest moved to the Explore
+// tab. Private Photo Vault stays hidden — opened by long-pressing the brand title.
+const TOOLS_HUB = [
+  { id: 'status', name: 'Status Saver', icon: 'logo-whatsapp', route: '/tools/status-saver' },
 ] as const;
 
 // ─── Explore showcase cards ───────────────────────────────────────────────────
@@ -35,6 +42,14 @@ export default function HomeScreen() {
   const projects = useProjectStore((s) => s.getRecent(8));
   const createProject = useProjectStore((s) => s.createProject);
   const [refreshing, setRefreshing] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  // Hidden Private Photo Vault — revealed only by long-pressing the brand title.
+  const openVault = useCallback(() => {
+    haptic.medium();
+    setToast('Opening private vault…');
+    setTimeout(() => { setToast(null); router.push('/tools/vault' as any); }, 650);
+  }, []);
 
   // ── Pick an image, create a project, open the full-screen editor ─────────
   const openWithImage = useCallback(async (route?: string | null) => {
@@ -78,8 +93,11 @@ export default function HomeScreen() {
     }
   }, [user]);
 
-  const onTile = (tile: typeof TILES[number]) =>
-    tile.id === 'camera' ? openCamera() : openWithImage(tile.route);
+  const onTile = (tile: typeof TILES[number]) => {
+    if (tile.id === 'camera') return openCamera();
+    if (tile.id === 'collage') { haptic.light(); return router.push('/editor/collage' as any); }
+    return openWithImage(tile.route);
+  };
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -100,7 +118,14 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.brand}>Polish</Text>
+          <TouchableOpacity
+            activeOpacity={1}
+            onLongPress={openVault}
+            delayLongPress={650}
+            style={styles.brandWrap}
+          >
+            <Text style={styles.brand}>Polish</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity onPress={() => router.push('/premium')} style={styles.proBtn}>
             <Ionicons name="diamond" size={13} color={Colors.white} />
@@ -108,6 +133,15 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
+
+      {toast && (
+        <View style={styles.toastWrap} pointerEvents="none">
+          <View style={styles.toast}>
+            <Ionicons name="lock-closed" size={15} color={Colors.primary} />
+            <Text style={styles.toastText}>{toast}</Text>
+          </View>
+        </View>
+      )}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -117,7 +151,7 @@ export default function HomeScreen() {
         {/* ── Big Photo button ───────────────────────────────────── */}
         <TouchableOpacity activeOpacity={0.9} onPress={() => openWithImage()} style={styles.photoBtnWrap}>
           <LinearGradient
-            colors={['#2F8BFF', '#1E6FFF']}
+            colors={Colors.gradients.primary}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.photoBtn}
@@ -166,6 +200,37 @@ export default function HomeScreen() {
           ))}
         </ScrollView>
 
+        {/* ── Tools (Status Saver) — below the Explore items ───────── */}
+        <View style={styles.exploreHeader}>
+          <Text style={styles.exploreTitle}>Tools</Text>
+          <View style={styles.exploreUnderline} />
+        </View>
+        <View style={styles.toolsGrid}>
+          {TOOLS_HUB.map((t) => (
+            <TouchableOpacity
+              key={t.id}
+              activeOpacity={0.9}
+              onPress={() => { haptic.light(); router.push(t.route as any); }}
+              style={styles.statusCard}
+            >
+              <LinearGradient
+                colors={['#25D366', '#128C7E']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+              <View style={styles.statusIconWrap}>
+                <Ionicons name="logo-whatsapp" size={30} color={Colors.white} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.statusTitle}>{t.name}</Text>
+                <Text style={styles.statusSub}>Save WhatsApp statuses & reels</Text>
+              </View>
+              <Ionicons name="download-outline" size={22} color="rgba(255,255,255,0.9)" />
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {/* ── Recent projects ────────────────────────────────────── */}
         {projects.length > 0 && (
           <>
@@ -211,10 +276,41 @@ const styles = StyleSheet.create({
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headerIcon: { padding: 4 },
+  brandWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   brand: {
-    position: 'absolute', left: 0, right: 0, textAlign: 'center',
+    textAlign: 'center',
     fontSize: Layout.fontSize.xl, fontFamily: 'Poppins_700Bold', color: Colors.white, letterSpacing: 0.5,
   },
+  toastWrap: { position: 'absolute', top: 80, left: 0, right: 0, alignItems: 'center', zIndex: 50 },
+  toast: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#14141C', paddingHorizontal: 16, paddingVertical: 10,
+    borderRadius: 999, borderWidth: 0.5, borderColor: Colors.dark.border,
+  },
+  toastText: { color: Colors.white, fontFamily: 'Poppins_600SemiBold', fontSize: Layout.fontSize.sm },
+
+  toolsGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 20, gap: 12, marginBottom: 30 },
+  toolCard: {
+    width: (Layout.window.width - 40 - 24) / 3, aspectRatio: 1,
+    backgroundColor: '#16161A', borderRadius: Layout.radius.lg,
+    alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 6,
+  },
+  toolCardIcon: {
+    width: 40, height: 40, borderRadius: 12, backgroundColor: '#0C1D17',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  toolCardLabel: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: Colors.text.secondary, textAlign: 'center' },
+  statusCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    width: '100%', paddingVertical: 16, paddingHorizontal: 16,
+    borderRadius: Layout.radius.lg, overflow: 'hidden',
+  },
+  statusIconWrap: {
+    width: 48, height: 48, borderRadius: 14,
+    backgroundColor: Colors.secondary, alignItems: 'center', justifyContent: 'center',
+  },
+  statusTitle: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_700Bold', color: Colors.white },
+  statusSub: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: 'rgba(255,255,255,0.9)', marginTop: 2 },
   proBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: '#FF4D6D', borderRadius: Layout.radius.md,

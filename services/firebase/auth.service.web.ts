@@ -2,6 +2,7 @@ import { User } from '../../types';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import {
   getAuth,
+  signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
   signInWithEmailAndPassword,
@@ -112,14 +113,24 @@ class AuthServiceWeb {
       p.addScope('name');
     }
     try {
-      // Full-page redirect to the provider. The browser navigates away here;
-      // on return, getRedirectResult / onAuthStateChanged complete the sign-in.
-      await signInWithRedirect(auth, p);
-    } catch (e) {
+      // Popup keeps the sign-in on Google's own window and returns the result
+      // directly — unlike signInWithRedirect, it doesn't lose the session on a
+      // custom domain (Vercel) where browsers block cross-site storage.
+      const cred = await signInWithPopup(auth, p);
+      return toUser(cred.user, provider);
+    } catch (e: any) {
+      const code = e?.code ?? '';
+      // If the popup is blocked / unsupported, fall back to a full-page redirect.
+      if (
+        code === 'auth/popup-blocked' ||
+        code === 'auth/cancelled-popup-request' ||
+        code === 'auth/operation-not-supported-in-this-environment'
+      ) {
+        try { await signInWithRedirect(auth, p); } catch (e2) { throw friendly(e2); }
+        return new Promise<User>(() => {}); // navigating away
+      }
       throw friendly(e);
     }
-    // The page is navigating to the provider — nothing past this point runs.
-    return new Promise<User>(() => {});
   }
 
   async signOut() {

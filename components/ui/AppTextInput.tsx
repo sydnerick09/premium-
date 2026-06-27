@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.card, borderRadius: Layout.radius.lg,
     borderWidth: 1.5, borderColor: Colors.dark.border, paddingHorizontal: 14,
   },
-  inputContainerFocused: { borderColor: Colors.primary, backgroundColor: `${Colors.primary}08` },
+  inputContainerFocused: { borderColor: Colors.primary, backgroundColor: '#0B1011' },
   inputContainerError: { borderColor: Colors.error },
   inputContainerDisabled: { opacity: 0.6 },
   icon: { marginRight: 8 },

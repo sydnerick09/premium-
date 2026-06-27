@@ -58,6 +58,9 @@ export function buildCssFilter(input: FilterInput): string {
     (a.shadows / 100) * 0.1 +
     (a.fade / 100) * 0.12;
   if (beauty?.skinSmoothing) brightness += (beauty.skinSmoothing / 100) * 0.06;
+  // Teeth whitening + eye enhancement lift brightness a touch (real edit on the photo).
+  if (beauty?.teethWhitening) brightness += (beauty.teethWhitening / 100) * 0.05;
+  if (beauty?.eyeEnhancement) brightness += (beauty.eyeEnhancement / 100) * 0.04;
   brightness = clamp(brightness, 0.2, 2.2);
   if (brightness !== 1) parts.push(`brightness(${brightness.toFixed(3)})`);
 
@@ -69,6 +72,8 @@ export function buildCssFilter(input: FilterInput): string {
     (a.sharpness / 100) * 0.2 -
     (a.fade / 100) * 0.3 -
     (a.shadows / 100) * 0.08;
+  // Eye enhancement adds a little local-feeling crispness via contrast.
+  if (beauty?.eyeEnhancement) contrast += (beauty.eyeEnhancement / 100) * 0.12;
   contrast = clamp(contrast, 0.3, 2.2);
   if (contrast !== 1) parts.push(`contrast(${contrast.toFixed(3)})`);
 

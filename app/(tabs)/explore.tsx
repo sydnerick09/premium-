@@ -4,11 +4,21 @@ import {
   TouchableOpacity, FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@components/ui/SolidGradient';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSettingsStore } from '../../store/settingsStore';
+import { haptic } from '../../utils/haptics';
 import { Colors } from '../../constants/Colors';
 import { Layout } from '../../constants/Layout';
+
+const TOOLS = [
+  { id: 'qr',    name: 'QR Scanner',   icon: 'qr-code-outline',         route: '/tools/qr'           },
+  { id: 'scan',  name: 'Doc Scanner',  icon: 'document-text-outline',   route: '/tools/scanner'      },
+  { id: 'pdf',   name: 'Image → PDF',  icon: 'document-attach-outline', route: '/tools/pdf'          },
+  { id: 'flyer', name: 'Flyer Maker',  icon: 'newspaper-outline',       route: '/tools/flyer'        },
+  { id: 'cloud', name: 'Cloud Backup', icon: 'cloud-upload-outline',    route: '/tools/cloud-backup' },
+];
 
 const TUTORIALS = [
   { id: '1', title: 'Cinematic Color Grading', duration: '3 min', icon: '🎬', gradient: Colors.gradients.primary },
@@ -40,6 +50,23 @@ export default function ExploreScreen() {
         </View>
       </SafeAreaView>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        <Text style={[styles.sectionTitle, { color: textPrimary }]}>Tools</Text>
+        <View style={styles.toolsGrid}>
+          {TOOLS.map((t) => (
+            <TouchableOpacity
+              key={t.id}
+              activeOpacity={0.85}
+              onPress={() => { haptic.light(); router.push(t.route as any); }}
+              style={[styles.toolCard, { backgroundColor: card }]}
+            >
+              <View style={styles.toolIcon}>
+                <Ionicons name={t.icon as any} size={22} color={Colors.primary} />
+              </View>
+              <Text style={[styles.toolLabel, { color: textSecondary }]}>{t.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         <Text style={[styles.sectionTitle, { color: textPrimary }]}>Tutorials</Text>
         {TUTORIALS.map((t) => (
           <TouchableOpacity key={t.id} style={[styles.tutorialCard, { backgroundColor: card }]}>
@@ -79,6 +106,10 @@ const styles = StyleSheet.create({
   title: { fontSize: Layout.fontSize['3xl'], fontFamily: 'Poppins_700Bold' },
   scroll: { paddingTop: 8 },
   sectionTitle: { fontSize: Layout.fontSize.lg, fontFamily: 'Poppins_700Bold', paddingHorizontal: 24, marginBottom: 12, marginTop: 8 },
+  toolsGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 24, gap: 12, marginBottom: 20 },
+  toolCard: { width: (Layout.window.width - 48 - 24) / 3, aspectRatio: 1, borderRadius: Layout.radius.lg, alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 6 },
+  toolIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#0C1D17', alignItems: 'center', justifyContent: 'center' },
+  toolLabel: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', textAlign: 'center' },
   tutorialCard: {
     flexDirection: 'row', alignItems: 'center', gap: 16,
     marginHorizontal: 24, marginBottom: 12,

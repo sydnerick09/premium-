@@ -7,7 +7,7 @@ import Slider from '@react-native-community/slider';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@components/ui/SolidGradient';
 import { useLayersStore } from '../../store/layersStore';
 import { useEditorStore } from '../../store/editorStore';
 import { Layer, BlendMode } from '../../types';
@@ -194,12 +194,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.card, borderRadius: Layout.radius.md,
     padding: 12, marginBottom: 8, borderWidth: 1, borderColor: Colors.transparent,
   },
-  layerCardActive: { borderColor: `${Colors.primary}50`, backgroundColor: `${Colors.primary}10` },
+  layerCardActive: { borderColor: Colors.primary, backgroundColor: '#0C1614' },
   layerIconBg: {
     width: 36, height: 36, borderRadius: 10,
     backgroundColor: Colors.dark.border, alignItems: 'center', justifyContent: 'center',
   },
-  layerIconBgActive: { backgroundColor: `${Colors.primary}20` },
+  layerIconBgActive: { backgroundColor: '#0D2119' },
   layerInfo: { flex: 1 },
   layerName: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.text.primary },
   layerMeta: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, marginTop: 2, textTransform: 'capitalize' },

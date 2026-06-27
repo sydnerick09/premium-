@@ -10,7 +10,8 @@ import Animated, {
   Easing,
   runOnJS,
 } from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@components/ui/SolidGradient';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { localStorage } from '../services/storage/localStorage.service';
 import { Colors } from '../constants/Colors';
@@ -74,7 +75,7 @@ export default function SplashScreen() {
           end={{ x: 1, y: 1 }}
           style={styles.logoGradient}
         >
-          <Animated.Text style={styles.logoIcon}>✦</Animated.Text>
+          <Ionicons name="aperture" size={58} color={Colors.white} />
         </LinearGradient>
       </Animated.View>
 

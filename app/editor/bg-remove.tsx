@@ -1,85 +1,106 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Image, Alert,
+  TouchableOpacity, Image, Alert, Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@components/ui/SolidGradient';
 import * as ImagePicker from 'expo-image-picker';
 import { useEditorStore } from '../../store/editorStore';
+import { imageProcessor } from '../../services/image/imageProcessor.service';
 import { haptic } from '../../utils/haptics';
 import { Colors } from '../../constants/Colors';
 import { Layout } from '../../constants/Layout';
 
-type BgTab = 'erase' | 'background';
+type BgDef =
+  | { id: string; label: string; kind: 'color'; color: string }
+  | { id: string; label: string; kind: 'gradient'; colors: [string, string] };
 
-const BG_COLORS = [
-  { id: 'transparent', label: 'None',     color: 'transparent', isChecker: true },
-  { id: 'white',       label: 'White',    color: '#FFFFFF' },
-  { id: 'black',       label: 'Black',    color: '#000000' },
-  { id: 'purple',      label: 'Purple',   color: '#7C3AED' },
-  { id: 'pink',        label: 'Pink',     color: '#EC4899' },
-  { id: 'blue',        label: 'Blue',     color: '#3B82F6' },
-  { id: 'green',       label: 'Green',    color: '#10B981' },
-  { id: 'red',         label: 'Red',      color: '#EF4444' },
-  { id: 'yellow',      label: 'Yellow',   color: '#F59E0B' },
-  { id: 'navy',        label: 'Navy',     color: '#1E3A5F' },
-  { id: 'cream',       label: 'Cream',    color: '#FFF8E7' },
-  { id: 'gray',        label: 'Gray',     color: '#6B7280' },
+const BG_COLORS: BgDef[] = [
+  { id: 'white',  label: 'White',  kind: 'color', color: '#FFFFFF' },
+  { id: 'black',  label: 'Black',  kind: 'color', color: '#000000' },
+  { id: 'green',  label: 'Green',  kind: 'color', color: '#22C55E' },
+  { id: 'blue',   label: 'Blue',   kind: 'color', color: '#3B82F6' },
+  { id: 'red',    label: 'Red',    kind: 'color', color: '#EF4444' },
+  { id: 'yellow', label: 'Yellow', kind: 'color', color: '#F59E0B' },
+  { id: 'pink',   label: 'Pink',   kind: 'color', color: '#EC4899' },
+  { id: 'navy',   label: 'Navy',   kind: 'color', color: '#1E3A5F' },
+  { id: 'cream',  label: 'Cream',  kind: 'color', color: '#FFF8E7' },
+  { id: 'gray',   label: 'Gray',   kind: 'color', color: '#6B7280' },
 ];
 
-const BG_GRADIENTS = [
-  { id: 'sunset',   label: 'Sunset',   colors: ['#FF6B6B', '#FFD93D'] as [string,string] },
-  { id: 'ocean',    label: 'Ocean',    colors: ['#0EA5E9', '#06B6D4'] as [string,string] },
-  { id: 'purple',   label: 'Purple',   colors: ['#7C3AED', '#EC4899'] as [string,string] },
-  { id: 'forest',   label: 'Forest',   colors: ['#065F46', '#10B981'] as [string,string] },
-  { id: 'night',    label: 'Night',    colors: ['#0A0A0F', '#1E3A5F'] as [string,string] },
-  { id: 'rose',     label: 'Rose',     colors: ['#BE185D', '#FB7185'] as [string,string] },
-];
-
-const BRUSH_SIZES = [8, 14, 20, 30, 44];
-const ERASER_MODES = [
-  { id: 'auto',   label: 'Auto BG',  icon: 'sparkles-outline',     desc: 'AI removes background instantly' },
-  { id: 'brush',  label: 'Brush',    icon: 'brush-outline',         desc: 'Paint over areas to erase' },
-  { id: 'smart',  label: 'Smart',    icon: 'color-wand-outline',    desc: 'Click to select & remove' },
-  { id: 'restore',label: 'Restore',  icon: 'refresh-circle-outline',desc: 'Paint back erased areas' },
+const BG_GRADIENTS: BgDef[] = [
+  { id: 'sunset', label: 'Sunset', kind: 'gradient', colors: ['#FF6B6B', '#FFD93D'] },
+  { id: 'ocean',  label: 'Ocean',  kind: 'gradient', colors: ['#0EA5E9', '#06B6D4'] },
+  { id: 'forest', label: 'Forest', kind: 'gradient', colors: ['#065F46', '#10B981'] },
+  { id: 'grape',  label: 'Grape',  kind: 'gradient', colors: ['#7C3AED', '#EC4899'] },
+  { id: 'night',  label: 'Night',  kind: 'gradient', colors: ['#0A0A0F', '#1E3A5F'] },
+  { id: 'rose',   label: 'Rose',   kind: 'gradient', colors: ['#BE185D', '#FB7185'] },
 ];
 
 export default function BgRemoveScreen() {
   const { currentUri, setCurrentUri } = useEditorStore();
-  const [activeTab, setActiveTab] = useState<BgTab>('erase');
-  const [selectedBg, setSelectedBg] = useState('transparent');
-  const [selectedGradient, setSelectedGradient] = useState<string | null>(null);
-  const [brushSize, setBrushSize] = useState(20);
-  const [eraserMode, setEraserMode] = useState('auto');
+
+  // The ORIGINAL subject photo (captured once). Every background is composited
+  // from this — so swapping White → Black just swaps, it never stacks.
+  const baseUriRef = useRef<string | null>(null);
+  const cutoutRef = useRef<string | null>(null);     // cached transparent subject
+  const cutoutTriedRef = useRef(false);
+
   const [isProcessing, setIsProcessing] = useState(false);
-  const [bgRemoved, setBgRemoved] = useState(false);
+  const [procLabel, setProcLabel] = useState('Working…');
+  const [selectedId, setSelectedId] = useState('original');
 
-  // Resolve the currently selected background for the live preview backdrop
-  const selectedColorDef = BG_COLORS.find((c) => c.id === selectedBg);
-  const selectedGradientDef = BG_GRADIENTS.find((g) => g.id === selectedGradient);
+  useEffect(() => {
+    if (currentUri && !baseUriRef.current) baseUriRef.current = currentUri;
+  }, [currentUri]);
 
-  const handleAutoRemove = async () => {
-    if (!currentUri) {
-      haptic.error();
-      Alert.alert('No Image', 'Please select a photo first.');
+  // Run the AI cutout once and cache it (the model download is the slow part).
+  const ensureCutout = async (): Promise<string | null> => {
+    if (cutoutTriedRef.current) return cutoutRef.current;
+    cutoutTriedRef.current = true;
+    if (Platform.OS !== 'web' || !baseUriRef.current) return null;
+    setProcLabel('Detecting subject…');
+    const cut = await imageProcessor.removeBackgroundCutout(baseUriRef.current);
+    cutoutRef.current = cut;
+    return cut;
+  };
+
+  const applyBackground = async (id: string, bg: BgDef | { kind: 'image'; uri: string }) => {
+    const base = baseUriRef.current;
+    if (!base) { haptic.error(); Alert.alert('No Image', 'Please select a photo first.'); return; }
+    haptic.light();
+    setSelectedId(id);
+
+    if (id === 'original') { setCurrentUri(base); return; }
+
+    if (Platform.OS !== 'web') {
+      Alert.alert('Background', 'Background replacement runs in the web app. Open the site to use it.');
       return;
     }
-    haptic.medium();
+
     setIsProcessing(true);
-    // Re-encode the image and mark background as removed so the chosen backdrop shows through
-    setTimeout(() => {
-      setIsProcessing(false);
-      setBgRemoved(true);
-      setActiveTab('background');
+    try {
+      const cut = await ensureCutout();
+      setProcLabel('Applying background…');
+      const bgArg =
+        bg.kind === 'image' ? bg
+        : bg.kind === 'gradient' ? { kind: 'gradient' as const, colors: bg.colors }
+        : { kind: 'color' as const, color: bg.color };
+
+      const out = cut
+        ? await imageProcessor.compositeBackground(cut, bgArg)
+        : await imageProcessor.replaceBackground(base, bgArg); // fallback, still from ORIGINAL
+      setCurrentUri(out);
       haptic.success();
-      Alert.alert(
-        'Background Removed',
-        'The subject has been isolated. Now pick a new background color or gradient from the Background tab — it shows behind your photo instantly.'
-      );
-    }, 1800);
+    } catch (e: any) {
+      haptic.error();
+      Alert.alert('Could not apply background', e?.message ?? 'Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handlePickBgImage = async () => {
@@ -90,15 +111,9 @@ export default function BgRemoveScreen() {
       quality: 0.9,
     });
     if (!result.canceled && result.assets.length) {
-      haptic.success();
-      Alert.alert('Background Set', 'Your custom background image has been applied.');
+      await applyBackground('photo', { kind: 'image', uri: result.assets[0].uri });
     }
   };
-
-  const TABS: { id: BgTab; label: string; icon: string }[] = [
-    { id: 'erase',      label: 'Erase BG',   icon: 'cut-outline'     },
-    { id: 'background', label: 'Background', icon: 'image-outline'   },
-  ];
 
   return (
     <View style={styles.container}>
@@ -108,10 +123,10 @@ export default function BgRemoveScreen() {
             <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <LinearGradient colors={['#EF4444','#F97316']} style={styles.headerIcon}>
+            <LinearGradient colors={Colors.gradients.primary} style={styles.headerIcon}>
               <Ionicons name="cut" size={16} color={Colors.white} />
             </LinearGradient>
-            <Text style={styles.title}>Remove BG</Text>
+            <Text style={styles.title}>Background</Text>
           </View>
           <TouchableOpacity onPress={() => { haptic.success(); router.back(); }} style={styles.doneBtn}>
             <LinearGradient colors={Colors.gradients.primary} style={styles.doneGradient}>
@@ -119,194 +134,73 @@ export default function BgRemoveScreen() {
             </LinearGradient>
           </TouchableOpacity>
         </View>
-
-        {/* Tab bar */}
-        <View style={styles.tabBar}>
-          {TABS.map((t) => (
-            <TouchableOpacity
-              key={t.id}
-              onPress={() => setActiveTab(t.id)}
-              style={[styles.tab, activeTab === t.id && styles.tabActive]}
-            >
-              <Ionicons name={t.icon as any} size={18} color={activeTab === t.id ? Colors.primary : Colors.text.muted} />
-              <Text style={[styles.tabLabel, activeTab === t.id && { color: Colors.primary }]}>{t.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
       </SafeAreaView>
 
-      {/* Preview canvas */}
-      <View style={styles.canvas}>
+      {/* Full-screen preview */}
+      <View style={styles.preview}>
         {currentUri ? (
-          <>
-            {/* Selected backdrop — shows behind the subject once background is removed */}
-            {bgRemoved && selectedGradientDef ? (
-              <LinearGradient
-                colors={selectedGradientDef.colors}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFillObject}
-              />
-            ) : bgRemoved && selectedColorDef && !selectedColorDef.isChecker ? (
-              <View style={[StyleSheet.absoluteFillObject, { backgroundColor: selectedColorDef.color }]} />
-            ) : (
-              <View style={styles.checker} />
-            )}
-            <Image source={{ uri: currentUri }} style={styles.canvasImage} resizeMode="contain" />
-          </>
+          <Image source={{ uri: currentUri }} style={styles.previewImage} resizeMode="contain" />
         ) : (
-          <View style={styles.canvasEmpty}>
+          <View style={styles.empty}>
             <Ionicons name="image-outline" size={40} color={Colors.text.muted} />
           </View>
         )}
         {isProcessing && (
           <View style={styles.processingOverlay}>
-            <LinearGradient colors={['rgba(10,10,15,0.95)','rgba(10,10,15,0.8)']} style={styles.processingBox}>
-              <Text style={{ fontSize: 28, marginBottom: 4 }}>🪄</Text>
-              <Text style={styles.processingLabel}>AI Removing Background…</Text>
+            <LinearGradient colors={['rgba(10,10,15,0.95)','rgba(10,10,15,0.85)']} style={styles.processingBox}>
+              <Text style={{ fontSize: 26, marginBottom: 6 }}>🪄</Text>
+              <Text style={styles.processingLabel}>{procLabel}</Text>
+              <Text style={styles.processingSub}>First time may take a few seconds to load the AI model.</Text>
             </LinearGradient>
-          </View>
-        )}
-
-        {/* Brush size indicator when in brush mode */}
-        {activeTab === 'erase' && eraserMode === 'brush' && (
-          <View style={styles.brushIndicator}>
-            <View style={[styles.brushCircle, { width: brushSize, height: brushSize, borderRadius: brushSize / 2 }]} />
           </View>
         )}
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      {/* Horizontal controls dock */}
+      <SafeAreaView edges={['bottom']} style={styles.dock}>
+        <Text style={styles.hint}>
+          Tap a background — your subject stays, only the background changes.
+        </Text>
 
-        {/* ── ERASE TAB ──────────────────────────────────────────── */}
-        {activeTab === 'erase' && (
-          <>
-            {/* Quick auto-remove */}
-            <TouchableOpacity onPress={handleAutoRemove} disabled={isProcessing} style={styles.autoBtn}>
-              <LinearGradient colors={['#EF4444','#F97316']} style={styles.autoBtnGradient}>
-                <Ionicons name="sparkles" size={20} color={Colors.white} />
-                <Text style={styles.autoBtnText}>
-                  {isProcessing ? 'Removing…' : 'Auto Remove Background (AI)'}
-                </Text>
-              </LinearGradient>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+          {/* Original */}
+          <TouchableOpacity onPress={() => applyBackground('original', { id: 'original', label: 'Original', kind: 'color', color: '#000' })} style={styles.swatchItem}>
+            <View style={[styles.swatch, styles.specialSwatch, selectedId === 'original' && styles.swatchActive]}>
+              <Ionicons name="refresh" size={20} color={Colors.text.secondary} />
+            </View>
+            <Text style={styles.swatchLabel}>Original</Text>
+          </TouchableOpacity>
+
+          {/* Photo background */}
+          <TouchableOpacity onPress={handlePickBgImage} style={styles.swatchItem}>
+            <View style={[styles.swatch, styles.specialSwatch, selectedId === 'photo' && styles.swatchActive]}>
+              <Ionicons name="images-outline" size={20} color={Colors.primary} />
+            </View>
+            <Text style={styles.swatchLabel}>Photo</Text>
+          </TouchableOpacity>
+
+          {/* Solid colours */}
+          {BG_COLORS.map((c) => (
+            <TouchableOpacity key={c.id} onPress={() => applyBackground(c.id, c)} style={styles.swatchItem}>
+              <View style={[styles.swatch, { backgroundColor: (c as any).color }, selectedId === c.id && styles.swatchActive]} />
+              <Text style={styles.swatchLabel}>{c.label}</Text>
             </TouchableOpacity>
+          ))}
 
-            <Text style={styles.sectionTitle}>Eraser Mode</Text>
-            <View style={styles.modeGrid}>
-              {ERASER_MODES.map((m) => (
-                <TouchableOpacity
-                  key={m.id}
-                  onPress={() => { haptic.light(); setEraserMode(m.id); }}
-                  style={[styles.modeCard, eraserMode === m.id && styles.modeCardActive]}
-                >
-                  <Ionicons name={m.icon as any} size={22} color={eraserMode === m.id ? Colors.primary : Colors.text.muted} />
-                  <Text style={[styles.modeLabel, eraserMode === m.id && { color: Colors.primary }]}>{m.label}</Text>
-                  <Text style={styles.modeDesc}>{m.desc}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Brush size (only for brush/restore modes) */}
-            {(eraserMode === 'brush' || eraserMode === 'restore') && (
-              <>
-                <Text style={styles.sectionTitle}>Brush Size</Text>
-                <View style={styles.brushRow}>
-                  {BRUSH_SIZES.map((s) => (
-                    <TouchableOpacity
-                      key={s}
-                      onPress={() => { haptic.selection(); setBrushSize(s); }}
-                      style={[styles.brushBtn, brushSize === s && styles.brushBtnActive]}
-                    >
-                      <View style={[styles.brushDot, {
-                        width: Math.min(s * 0.7, 28),
-                        height: Math.min(s * 0.7, 28),
-                        borderRadius: 99,
-                        backgroundColor: brushSize === s ? Colors.primary : Colors.text.muted,
-                      }]} />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            )}
-
-            <View style={styles.tipCard}>
-              <Ionicons name="information-circle-outline" size={16} color={Colors.primary} />
-              <Text style={styles.tipText}>
-                Tip: Use "Auto Remove" first, then refine edges with the Brush tool.
-              </Text>
-            </View>
-          </>
-        )}
-
-        {/* ── BACKGROUND TAB ─────────────────────────────────────── */}
-        {activeTab === 'background' && (
-          <>
-            {/* Custom image */}
-            <TouchableOpacity onPress={handlePickBgImage} style={styles.pickBgBtn}>
-              <Ionicons name="image-outline" size={22} color={Colors.primary} />
-              <Text style={styles.pickBgText}>Choose Photo from Gallery</Text>
-              <Ionicons name="chevron-forward" size={18} color={Colors.text.muted} />
+          {/* Gradients */}
+          {BG_GRADIENTS.map((g) => (
+            <TouchableOpacity key={g.id} onPress={() => applyBackground(g.id, g)} style={styles.swatchItem}>
+              <LinearGradient
+                colors={(g as any).colors}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.swatch, selectedId === g.id && styles.swatchActive]}
+              />
+              <Text style={styles.swatchLabel}>{g.label}</Text>
             </TouchableOpacity>
-
-            {/* Solid colors */}
-            <Text style={styles.sectionTitle}>Solid Colors</Text>
-            <View style={styles.colorGrid}>
-              {BG_COLORS.map((c) => (
-                <TouchableOpacity
-                  key={c.id}
-                  onPress={() => { haptic.light(); setSelectedBg(c.id); setSelectedGradient(null); }}
-                  style={styles.colorItem}
-                >
-                  <View style={[
-                    styles.colorSwatch,
-                    c.isChecker ? styles.checkerSwatch : { backgroundColor: c.color },
-                    selectedBg === c.id && styles.colorSwatchActive,
-                  ]}>
-                    {c.isChecker && <Text style={{ fontSize: 12 }}>⬜</Text>}
-                  </View>
-                  <Text style={styles.colorLabel}>{c.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Gradients */}
-            <Text style={styles.sectionTitle}>Gradients</Text>
-            <View style={styles.gradientGrid}>
-              {BG_GRADIENTS.map((g) => (
-                <TouchableOpacity
-                  key={g.id}
-                  onPress={() => { haptic.light(); setSelectedGradient(g.id); setSelectedBg(''); }}
-                  style={styles.gradientItem}
-                >
-                  <LinearGradient
-                    colors={g.colors}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={[styles.gradientSwatch, selectedGradient === g.id && styles.colorSwatchActive]}
-                  />
-                  <Text style={styles.colorLabel}>{g.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TouchableOpacity
-              onPress={() => {
-                haptic.success();
-                setBgRemoved(true);
-                Alert.alert('Background Applied', 'Your new background is now shown behind your photo in the preview above. Tap Done to keep it.');
-              }}
-              style={styles.applyBtn}
-            >
-              <LinearGradient colors={Colors.gradients.primary} style={styles.applyBtnGradient}>
-                <Ionicons name="checkmark-circle" size={20} color={Colors.white} />
-                <Text style={styles.applyBtnText}>Apply Background</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </>
-        )}
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
+          ))}
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 }
@@ -321,84 +215,32 @@ const styles = StyleSheet.create({
   doneGradient: { paddingHorizontal: 16, paddingVertical: 8 },
   doneText: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.white },
 
-  tabBar: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: Colors.dark.border },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10 },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: Colors.primary },
-  tabLabel: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.text.muted },
-
-  canvas: {
-    height: 200, marginHorizontal: 16, marginTop: 12,
+  preview: {
+    flex: 1, marginHorizontal: 16, marginVertical: 12,
     borderRadius: Layout.radius.xl, overflow: 'hidden',
     backgroundColor: Colors.dark.card, alignItems: 'center', justifyContent: 'center',
   },
-  checker: { ...StyleSheet.absoluteFillObject, opacity: 0.15,
-    backgroundColor: 'transparent',
-  },
-  canvasImage: { width: '100%', height: '100%' },
-  canvasEmpty: { alignItems: 'center', justifyContent: 'center' },
+  previewImage: { width: '100%', height: '100%' },
+  empty: { alignItems: 'center', justifyContent: 'center' },
   processingOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  processingBox: { padding: 20, borderRadius: 16, alignItems: 'center', gap: 4 },
-  processingLabel: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.text.primary },
-  brushIndicator: { position: 'absolute', bottom: 8, right: 8, alignItems: 'center' },
-  brushCircle: { borderWidth: 1.5, borderColor: Colors.white, backgroundColor: 'rgba(255,255,255,0.15)' },
+  processingBox: { padding: 22, borderRadius: 16, alignItems: 'center', gap: 2, maxWidth: 260 },
+  processingLabel: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_600SemiBold', color: Colors.text.primary },
+  processingSub: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, textAlign: 'center', marginTop: 4 },
 
-  scroll: { paddingHorizontal: 16, paddingTop: 12 },
-
-  autoBtn: { borderRadius: Layout.radius.md, overflow: 'hidden', marginBottom: 18 },
-  autoBtnGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
-  autoBtnText: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_600SemiBold', color: Colors.white },
-
-  sectionTitle: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_700Bold', color: Colors.text.primary, marginBottom: 10, marginTop: 4 },
-
-  modeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
-  modeCard: {
-    width: (Layout.window.width - 52) / 2,
-    backgroundColor: Colors.dark.card, borderRadius: Layout.radius.lg,
-    padding: 12, gap: 4, borderWidth: 1, borderColor: Colors.dark.border,
+  dock: {
+    backgroundColor: Colors.dark.surface,
+    borderTopWidth: 0.5, borderTopColor: Colors.dark.border,
+    paddingTop: 10,
   },
-  modeCardActive: { borderColor: Colors.primary, backgroundColor: `${Colors.primary}14` },
-  modeLabel: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.text.secondary },
-  modeDesc: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, lineHeight: 16 },
-
-  brushRow: { flexDirection: 'row', gap: 10, marginBottom: 16, alignItems: 'center' },
-  brushBtn: {
-    width: 44, height: 44, borderRadius: Layout.radius.md,
-    backgroundColor: Colors.dark.card, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: Colors.dark.border,
-  },
-  brushBtnActive: { borderColor: Colors.primary },
-  brushDot: {},
-
-  tipCard: {
-    flexDirection: 'row', gap: 8, alignItems: 'flex-start',
-    backgroundColor: `${Colors.primary}12`, borderRadius: Layout.radius.md,
-    padding: 10, borderWidth: 0.5, borderColor: `${Colors.primary}30`,
-  },
-  tipText: { flex: 1, fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, lineHeight: 17 },
-
-  pickBgBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: Colors.dark.card, borderRadius: Layout.radius.lg,
-    padding: 14, marginBottom: 18, borderWidth: 0.5, borderColor: Colors.dark.border,
-  },
-  pickBgText: { flex: 1, fontSize: Layout.fontSize.base, fontFamily: 'Poppins_500Medium', color: Colors.text.primary },
-
-  colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 18 },
-  colorItem: { alignItems: 'center', gap: 4, width: (Layout.window.width - 56) / 6 },
-  colorSwatch: {
-    width: 40, height: 40, borderRadius: 12,
+  hint: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, textAlign: 'center', paddingHorizontal: 16, marginBottom: 8 },
+  row: { paddingHorizontal: 14, paddingBottom: 6, gap: 12 },
+  swatchItem: { alignItems: 'center', gap: 5, width: 60 },
+  swatch: {
+    width: 52, height: 52, borderRadius: 14,
     borderWidth: 1.5, borderColor: Colors.dark.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  checkerSwatch: { backgroundColor: Colors.dark.card },
-  colorSwatchActive: { borderColor: Colors.primary, borderWidth: 2.5 },
-  colorLabel: { fontSize: 9, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, textAlign: 'center' },
-
-  gradientGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
-  gradientItem: { alignItems: 'center', gap: 4, width: (Layout.window.width - 56) / 3 },
-  gradientSwatch: { width: '100%', height: 44, borderRadius: 12, borderWidth: 1.5, borderColor: Colors.dark.border },
-
-  applyBtn: { borderRadius: Layout.radius.md, overflow: 'hidden' },
-  applyBtnGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 14 },
-  applyBtnText: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_600SemiBold', color: Colors.white },
+  specialSwatch: { backgroundColor: Colors.dark.card },
+  swatchActive: { borderColor: Colors.primary, borderWidth: 3 },
+  swatchLabel: { fontSize: 10, fontFamily: 'Poppins_500Medium', color: Colors.text.muted, textAlign: 'center' },
 });

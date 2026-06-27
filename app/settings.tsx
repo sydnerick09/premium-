@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Switch, Alert,
+  TouchableOpacity, Switch, Alert, Platform, Share, Linking,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@components/ui/SolidGradient';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore } from '../store/settingsStore';
 import { haptic } from '../utils/haptics';
@@ -49,11 +49,57 @@ export default function SettingsScreen() {
     );
   };
 
+  // App links — set EXPO_PUBLIC_STORE_URL to your real Play Store listing later.
+  const APP_URL = process.env.EXPO_PUBLIC_APP_URL ?? 'https://premium-web-sooty.vercel.app';
+  const STORE_URL = process.env.EXPO_PUBLIC_STORE_URL ?? APP_URL;
+
+  const doSignOut = async () => {
+    try { await signOut(); } catch {}
+    router.replace('/(auth)/register');
+  };
+
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: async () => { await signOut(); router.replace('/(auth)/login'); } },
-    ]);
+    // Alert.alert button callbacks are ignored on react-native-web, so sign-out
+    // did nothing in the browser. Use window.confirm on web, native Alert on phone.
+    if (Platform.OS === 'web') {
+      if (typeof window === 'undefined' || window.confirm('Sign out of Erick?')) doSignOut();
+    } else {
+      Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign Out', style: 'destructive', onPress: doSignOut },
+      ]);
+    }
+  };
+
+  const handleRate = async () => {
+    try {
+      if (Platform.OS === 'web') {
+        if (typeof window !== 'undefined') window.open(STORE_URL, '_blank');
+      } else {
+        await Linking.openURL(STORE_URL);
+      }
+    } catch {}
+  };
+
+  const handleShare = async () => {
+    const message = `Check out Erick Photo Editor — edit your photos like a pro! ${APP_URL}`;
+    try {
+      if (Platform.OS === 'web') {
+        const nav: any = typeof navigator !== 'undefined' ? navigator : null;
+        if (nav?.share) {
+          // Native share sheet (Gmail, Messages, WhatsApp…) on supported mobile browsers.
+          await nav.share({ title: 'Erick Photo Editor', text: message, url: APP_URL });
+        } else if (typeof window !== 'undefined') {
+          // Fallback: open an email draft (opens Gmail / default mail to send).
+          window.open(
+            `mailto:?subject=${encodeURIComponent('Erick Photo Editor')}&body=${encodeURIComponent(message)}`,
+            '_blank',
+          );
+        }
+      } else {
+        await Share.share({ message });
+      }
+    } catch {}
   };
 
   interface ToggleRowProps {
@@ -254,13 +300,13 @@ export default function SettingsScreen() {
             <NavRow
               icon="star-outline"
               label="Rate Erick"
-              onPress={() => Alert.alert('Rate Us', 'Opening Play Store...')}
+              onPress={handleRate}
             />
             <View style={styles.separator} />
             <NavRow
               icon="share-social-outline"
               label="Share Erick"
-              onPress={() => Alert.alert('Share', 'Sharing app link...')}
+              onPress={handleShare}
             />
             <View style={styles.separator} />
             <View style={styles.settingRow}>
@@ -357,7 +403,7 @@ const styles = StyleSheet.create({
   section: { marginBottom: 20 },
   sectionTitle: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.text.muted, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
   card: { backgroundColor: Colors.dark.card, borderRadius: Layout.radius.xl, overflow: 'hidden', borderWidth: 0.5, borderColor: Colors.dark.border },
-  dangerCard: { marginTop: 8, borderColor: `${Colors.error}40` },
+  dangerCard: { marginTop: 8, borderColor: Colors.error },
   separator: { height: 0.5, backgroundColor: Colors.dark.border, marginHorizontal: 16 },
   settingRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -366,9 +412,9 @@ const styles = StyleSheet.create({
   settingLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   settingIconBg: {
     width: 34, height: 34, borderRadius: 10,
-    backgroundColor: `${Colors.primary}18`, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#0C1C16', alignItems: 'center', justifyContent: 'center',
   },
-  settingIconBgDanger: { backgroundColor: `${Colors.error}18` },
+  settingIconBgDanger: { backgroundColor: '#200F14' },
   settingLabel: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.text.primary },
   settingDesc: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, marginTop: 2 },
   versionText: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_500Medium', color: Colors.text.muted },

@@ -6,7 +6,7 @@ import {
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@components/ui/SolidGradient';
 import { useEditorStore } from '../../store/editorStore';
 import { useAuthStore } from '../../store/authStore';
 import { exportService } from '../../services/image/exportService';
@@ -331,14 +331,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.card, alignItems: 'center',
     borderWidth: 0.5, borderColor: Colors.dark.border,
   },
-  qualityMarkActive: { borderColor: Colors.primary, backgroundColor: `${Colors.primary}15` },
+  qualityMarkActive: { borderColor: Colors.primary, backgroundColor: '#0C1916' },
   qualityMarkText: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_600SemiBold', color: Colors.text.secondary },
   resolutionList: { gap: 8 },
   resolutionItem: {
     backgroundColor: Colors.dark.card, borderRadius: Layout.radius.md,
     padding: 14, borderWidth: 0.5, borderColor: Colors.dark.border,
   },
-  resolutionItemActive: { borderColor: Colors.primary, backgroundColor: `${Colors.primary}08` },
+  resolutionItemActive: { borderColor: Colors.primary, backgroundColor: '#0B1011' },
   resolutionLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   radioOuter: {
     width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: Colors.dark.border,
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
   toggleLeft: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, flex: 1 },
   toggleLabel: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.text.primary },
   toggleDesc: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, marginTop: 2 },
-  removedBadge: { backgroundColor: `${Colors.success}20`, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  removedBadge: { backgroundColor: '#0B201D', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   removedBadgeText: { fontSize: 9, fontFamily: 'Poppins_600SemiBold', color: Colors.success },
   premiumBanner: { borderRadius: Layout.radius.xl, overflow: 'hidden', marginBottom: 8 },
   premiumBannerGrad: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },

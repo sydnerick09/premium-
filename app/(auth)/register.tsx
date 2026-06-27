@@ -4,11 +4,12 @@ import {
   KeyboardAvoidingView, Platform, ScrollView, Alert, TextInput,
 } from 'react-native';
 import { router, Link } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@components/ui/SolidGradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { validateEmail, validatePassword, validateName, validateConfirmPassword } from '../../utils/validators';
+import { notify } from '../../utils/notify';
 import { haptic } from '../../utils/haptics';
 import { Colors } from '../../constants/Colors';
 import { Layout } from '../../constants/Layout';
@@ -58,7 +59,7 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string | null>>({});
-  const { register, isLoading, clearError } = useAuthStore();
+  const { register, socialSignIn, isLoading, clearError } = useAuthStore();
 
   const clearFieldError = (key: string) =>
     setErrors((prev) => ({ ...prev, [key]: null }));
@@ -83,7 +84,20 @@ export default function RegisterScreen() {
       router.replace('/(tabs)');
     } catch (e: any) {
       haptic.error();
-      Alert.alert('Registration Failed', e.message);
+      notify('Registration Failed', e?.message ?? 'Please try again.');
+    }
+  };
+
+  const handleSocial = async (provider: 'Google' | 'Facebook' | 'Apple') => {
+    haptic.light();
+    clearError();
+    try {
+      await socialSignIn(provider.toLowerCase() as 'google' | 'facebook' | 'apple');
+      haptic.success();
+      router.replace('/(tabs)');
+    } catch (e: any) {
+      haptic.error();
+      notify(`Sign up with ${provider}`, e?.message ?? 'Please try again.');
     }
   };
 
@@ -189,6 +203,37 @@ export default function RegisterScreen() {
               </LinearGradient>
             </TouchableOpacity>
 
+            {/* Social sign-up */}
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or sign up with</Text>
+              <View style={styles.dividerLine} />
+            </View>
+            <TouchableOpacity
+              onPress={() => handleSocial('Google')}
+              activeOpacity={0.85}
+              style={styles.socialBtn}
+            >
+              <Ionicons name="logo-google" size={20} color="#EA4335" />
+              <Text style={styles.socialText}>Sign up with Google</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleSocial('Apple')}
+              activeOpacity={0.85}
+              style={styles.socialBtn}
+            >
+              <Ionicons name="logo-apple" size={20} color={Colors.text.primary} />
+              <Text style={styles.socialText}>Sign up with Apple</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleSocial('Facebook')}
+              activeOpacity={0.85}
+              style={styles.socialBtn}
+            >
+              <Ionicons name="logo-facebook" size={20} color="#1877F2" />
+              <Text style={styles.socialText}>Sign up with Facebook</Text>
+            </TouchableOpacity>
+
             <View style={styles.loginRow}>
               <Text style={styles.loginLabel}>Already have an account?</Text>
               <Link href="/(auth)/login" asChild>
@@ -276,6 +321,30 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins_600SemiBold',
     color: Colors.white,
     letterSpacing: 0.5,
+  },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 24 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: Colors.dark.border },
+  dividerText: {
+    fontSize: Layout.fontSize.sm,
+    fontFamily: 'Poppins_400Regular',
+    color: Colors.text.muted,
+  },
+  socialBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: Colors.dark.card,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+    borderRadius: Layout.radius.md,
+    height: 52,
+    marginTop: 12,
+  },
+  socialText: {
+    fontSize: Layout.fontSize.base,
+    fontFamily: 'Poppins_600SemiBold',
+    color: Colors.text.primary,
   },
   loginRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
   loginLabel: {

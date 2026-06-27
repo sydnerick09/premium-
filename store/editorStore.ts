@@ -34,6 +34,9 @@ export interface TextOverlay {
   italic: boolean;
   x: number; // 0..1 relative position
   y: number; // 0..1 relative position
+  // Optional speech/thought bubble behind the text.
+  bubble?: 'none' | 'speech' | 'thought' | 'pill' | 'box' | 'outline';
+  bubbleColor?: string;
 }
 
 interface EditorState {

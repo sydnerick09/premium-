@@ -6,7 +6,7 @@ import {
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@components/ui/SolidGradient';
 import { useAuthStore } from '../store/authStore';
 import { purchaseService } from '../services/purchase/purchase.service';
 import { haptic } from '../utils/haptics';
@@ -212,7 +212,7 @@ export default function PremiumScreen() {
                 >
                   {selectedPlan === plan.id && (
                     <LinearGradient
-                      colors={[`${Colors.primary}15`, `${Colors.secondary}10`]}
+                      colors={['#0C1916', '#0A1315']}
                       style={StyleSheet.absoluteFillObject as any}
                     />
                   )}

@@ -3,14 +3,15 @@ import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import Slider from '@react-native-community/slider';
+import { LinearGradient } from '@components/ui/SolidGradient';
+import AppSlider from '../../components/AppSlider';
 import { useEditorStore } from '../../store/editorStore';
 import { imageProcessor } from '../../services/image/imageProcessor.service';
+import EditorImage from '../../components/EditorImage';
+import { FilterCatalog } from '../../constants/FilterCatalog';
 import { BeautyValues } from '../../types';
 import { haptic } from '../../utils/haptics';
 import { Colors } from '../../constants/Colors';
@@ -58,11 +59,14 @@ export default function BeautyScreen() {
   const {
     beautyValues, updateBeauty, resetBeauty, currentUri,
     setCurrentUri, pushHistory, setProcessing, setAdjustments,
+    adjustments, activeFilterId, filterIntensity,
   } = useEditorStore();
+  const activeFilter = activeFilterId ? FilterCatalog.find((f) => f.id === activeFilterId) ?? null : null;
 
   const [activeTab, setActiveTab] = useState<BeautyTab>('retouch');
   const [selectedShape, setSelectedShape] = useState<string | null>(null);
   const [isApplying, setIsApplying] = useState(false);
+  const [activeBeautyKey, setActiveBeautyKey] = useState<keyof BeautyValues | null>(null);
 
   const TABS = [
     { id: 'retouch'    as BeautyTab, label: 'Retouch',    icon: 'sparkles-outline' },
@@ -70,16 +74,10 @@ export default function BeautyScreen() {
     { id: 'face-guide' as BeautyTab, label: 'Face Guide', icon: 'happy-outline'    },
   ];
 
-  // Compute visual overlay effects from beauty values
-  const smoothingOpacity  = beautyValues.skinSmoothing  / 400;   // subtle brightening
-  const whiteningOpacity  = beautyValues.teethWhitening / 300;
-  const eyeEnhanceOpacity = beautyValues.eyeEnhancement / 350;
 
   const handleDone = async () => {
     haptic.success();
 
-    // Apply beauty effects: skin smoothing → slight brightness + saturation boost
-    // In a production app, this would call a native facial processing pipeline
     const hasEffects = Object.values(beautyValues).some((v) =>
       typeof v === 'number' ? v !== 0 : v !== null
     );
@@ -87,36 +85,19 @@ export default function BeautyScreen() {
     if (hasEffects && currentUri) {
       setIsApplying(true);
       try {
-        // Translate beauty values into adjustment tweaks
-        const skinSmooth  = beautyValues.skinSmoothing  / 100;
-        const teethWhite  = beautyValues.teethWhitening / 100;
-        const eyeEnhance  = beautyValues.eyeEnhancement / 100;
-
-        // Apply as image-level adjustments (re-encode with quality improvement + blur for smoothing)
-        const actions: any[] = [];
-        // Slight downsample + upsample simulates softening pass
-        if (skinSmooth > 0.1) {
-          const { width } = await imageProcessor.getImageSize(currentUri);
-          actions.push({ resize: { width: Math.round(width * 0.92) } });
-          actions.push({ resize: { width } });
-        }
-
-        const uri = actions.length > 0
-          ? await imageProcessor.applyOperations(currentUri, actions, 0.97)
-          : currentUri;
-
-        // Push adjustment tweaks to the store so the canvas overlay shows them
-        setAdjustments({
-          brightness:  Math.round(skinSmooth  * 8 + teethWhite * 12),
-          saturation:  Math.round(eyeEnhance  * 10),
-          clarity:     Math.round(eyeEnhance  * 20),
-          sharpness:   Math.round(eyeEnhance  * 15),
+        // Bake beauty into ONLY the detected facial regions (skin / eyes / teeth).
+        const out = await imageProcessor.applyBeautyLocalized(currentUri, {
+          skinSmoothing: beautyValues.skinSmoothing,
+          teethWhitening: beautyValues.teethWhitening,
+          eyeEnhancement: beautyValues.eyeEnhancement,
         });
-
-        if (uri !== currentUri) {
-          setCurrentUri(uri, 'Beauty Applied');
-          pushHistory('Beauty Applied', uri);
+        if (out && out !== currentUri) {
+          setCurrentUri(out, 'Beauty Applied');
+          pushHistory('Beauty Applied', out);
         }
+        // Clear the live (global) preview values so they aren't re-applied on top
+        // of the now-baked, localized result.
+        resetBeauty();
       } catch { haptic.error(); }
       finally { setIsApplying(false); }
     }
@@ -124,37 +105,97 @@ export default function BeautyScreen() {
     router.back();
   };
 
-  const renderSliders = (group: 'retouch' | 'reshape') =>
-    BEAUTY_TOOLS.filter((t) => t.group === group).map((tool) => {
-      const value = beautyValues[tool.key] as number;
-      return (
-        <View key={tool.key} style={styles.toolRow}>
-          <View style={styles.toolHeader}>
-            <Ionicons name={tool.icon as any} size={18} color={Colors.accent} />
-            <Text style={styles.toolLabel}>{tool.label}</Text>
-            {tool.isPremium && (
-              <LinearGradient colors={Colors.gradients.gold} style={styles.proBadge}>
-                <Text style={styles.proBadgeText}>PRO</Text>
-              </LinearGradient>
-            )}
-            <Text style={styles.toolValue}>{(value as number).toFixed(0)}</Text>
+  // Tools in the currently selected group (Retouch / Reshape) and the active one.
+  const groupTools = BEAUTY_TOOLS.filter(
+    (t) => t.group === (activeTab === 'reshape' ? 'reshape' : 'retouch'),
+  );
+  const activeTool = activeBeautyKey
+    ? BEAUTY_TOOLS.find((t) => t.key === activeBeautyKey) ?? null
+    : null;
+
+  const switchTab = (tab: BeautyTab) => {
+    haptic.selection();
+    setActiveTab(tab);
+    setActiveBeautyKey(null); // active control belongs to a group; reset on switch
+  };
+
+  // A horizontal strip of beauty-tool icons + a single slider for the active one.
+  const renderToolDock = () => (
+    <SafeAreaView edges={['bottom']} style={styles.dock}>
+      {activeTool ? (
+        <View style={styles.sliderBar}>
+          <View style={styles.sliderLabelRow}>
+            <Text style={styles.sliderName}>{activeTool.label}</Text>
+            <Text style={styles.sliderValue}>
+              {(beautyValues[activeTool.key] as number).toFixed(0)}
+            </Text>
           </View>
-          <Slider
+          <AppSlider
             style={{ width: '100%', height: 36 }}
-            minimumValue={tool.min}
-            maximumValue={tool.max}
+            minimumValue={activeTool.min}
+            maximumValue={activeTool.max}
             step={1}
-            value={value}
-            onValueChange={(v) => updateBeauty(tool.key, v)}
+            value={beautyValues[activeTool.key] as number}
+            onValueChange={(v) => updateBeauty(activeTool.key, v)}
             onSlidingComplete={() => haptic.selection()}
             minimumTrackTintColor={Colors.accent}
             maximumTrackTintColor={Colors.dark.border}
             thumbTintColor={Colors.white}
-            disabled={tool.isPremium}
+            disabled={activeTool.isPremium}
           />
+          {activeTool.isPremium && (
+            <Text style={styles.proHint}>This is a Premium tool — upgrade to unlock.</Text>
+          )}
         </View>
-      );
-    });
+      ) : (
+        <Text style={styles.hint}>Tap a tool below to start editing</Text>
+      )}
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
+        {groupTools.map((tool) => {
+          const value = beautyValues[tool.key] as number;
+          const isActive = activeBeautyKey === tool.key;
+          return (
+            <TouchableOpacity
+              key={tool.key}
+              onPress={() => { haptic.selection(); setActiveBeautyKey(isActive ? null : tool.key); }}
+              activeOpacity={0.8}
+              style={styles.chip}
+            >
+              <View style={[styles.chipIcon, isActive && styles.chipIconActive]}>
+                <Ionicons name={tool.icon as any} size={22} color={isActive ? Colors.accent : Colors.text.muted} />
+                {value !== 0 && <View style={styles.chipDot} />}
+                {tool.isPremium && (
+                  <View style={styles.chipPro}>
+                    <Text style={styles.chipProText}>PRO</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={[styles.chipLabel, isActive && { color: Colors.accent }]} numberOfLines={1}>
+                {tool.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Lip Color (Retouch only) */}
+      {activeTab === 'retouch' && (
+        <View style={styles.lipRow}>
+          <Text style={styles.lipLabel}>Lip Color</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {MAKEUP_COLORS.map((color) => (
+              <TouchableOpacity
+                key={color}
+                onPress={() => { haptic.light(); updateBeauty('lipColor', beautyValues.lipColor === color ? null : color); }}
+                style={[styles.colorSwatch, { backgroundColor: color }, beautyValues.lipColor === color && styles.colorSwatchActive]}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      )}
+    </SafeAreaView>
+  );
 
   return (
     <View style={styles.container}>
@@ -183,7 +224,7 @@ export default function BeautyScreen() {
           {TABS.map((t) => (
             <TouchableOpacity
               key={t.id}
-              onPress={() => setActiveTab(t.id)}
+              onPress={() => switchTab(t.id)}
               style={[styles.tab, activeTab === t.id && styles.tabActive]}
             >
               <Ionicons name={t.icon as any} size={17} color={activeTab === t.id ? Colors.accent : Colors.text.muted} />
@@ -193,159 +234,85 @@ export default function BeautyScreen() {
         </View>
       </SafeAreaView>
 
-      {/* Live preview with beauty overlays — effects target the centered face region */}
-      {currentUri && (
+      {/* Live preview — beauty is applied to the ACTUAL image pixels (no overlay
+          shapes). Skin smoothing softens + evens the skin; teeth/eye add subtle
+          brightening/clarity. */}
+      {activeTab !== 'face-guide' && currentUri && (
         <View style={styles.preview}>
-          <Image source={{ uri: currentUri }} style={styles.previewImage} contentFit="contain" />
-
-          {/* Face-region container: beauty effects are confined here (upper-center, oval)
-              so they target the face instead of the whole image. */}
-          <View pointerEvents="none" style={styles.faceRegion}>
-            {/* Skin smoothing: warm soft-light overlay (whole face oval) */}
-            {smoothingOpacity > 0 && (
-              <View style={[styles.faceOval, { backgroundColor: `rgba(255,225,195,${Math.min(smoothingOpacity * 1.6, 0.45)})` }]} />
-            )}
-
-            {/* Teeth whitening: localized bright patch over the mouth area */}
-            {whiteningOpacity > 0 && (
-              <View style={[styles.teethRegion, { backgroundColor: `rgba(255,255,255,${Math.min(whiteningOpacity * 2.2, 0.7)})` }]} />
-            )}
-
-            {/* Eye enhancement: two bright spots over the eye area */}
-            {eyeEnhanceOpacity > 0 && (
-              <View style={styles.eyeRow}>
-                <View style={[styles.eyeSpot, { backgroundColor: `rgba(180,220,255,${Math.min(eyeEnhanceOpacity * 2.5, 0.6)})` }]} />
-                <View style={[styles.eyeSpot, { backgroundColor: `rgba(180,220,255,${Math.min(eyeEnhanceOpacity * 2.5, 0.6)})` }]} />
-              </View>
-            )}
-
-            {/* Lip color: localized tint over the lip area */}
-            {beautyValues.lipColor && (
-              <View style={[styles.lipRegion, { backgroundColor: beautyValues.lipColor + 'AA' }]} />
-            )}
-          </View>
-
-          {/* Guide outline so the user sees where the face region is targeted */}
-          {(smoothingOpacity > 0 || whiteningOpacity > 0 || eyeEnhanceOpacity > 0 || beautyValues.lipColor) && (
-            <View pointerEvents="none" style={[styles.faceRegion]}>
-              <View style={styles.faceGuideOutline} />
-            </View>
-          )}
-
-          {/* Processing indicator */}
+          <EditorImage
+            uri={currentUri}
+            adjustments={adjustments}
+            filter={activeFilter}
+            filterIntensity={filterIntensity}
+            beauty={beautyValues}
+            radius={Layout.radius.xl}
+          />
           {isApplying && (
             <View style={styles.applyingOverlay}>
-              <Text style={styles.applyingText}>✦ Applying beauty to face...</Text>
+              <Text style={styles.applyingText}>✦ Applying beauty…</Text>
             </View>
           )}
         </View>
       )}
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-
-        {/* ── RETOUCH ──────────────────────────── */}
-        {activeTab === 'retouch' && (
-          <>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoIcon}>💎</Text>
-              <View style={styles.infoText}>
-                <Text style={styles.infoTitle}>Natural Skin Retouching</Text>
-                <Text style={styles.infoDesc}>
-                  AI-powered tools that keep your photo authentic — no over-processed looks.
+      {/* Retouch / Reshape → compact horizontal tool dock. Face Guide → scroll. */}
+      {activeTab === 'face-guide' ? (
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+          <View style={styles.faceGuideBanner}>
+            <Ionicons name="information-circle-outline" size={20} color={Colors.primary} />
+            <Text style={styles.faceGuideBannerText}>
+              Select your face shape. We'll recommend the best beauty tools for you.
+            </Text>
+          </View>
+          <View style={styles.shapeGrid}>
+            {FACE_SHAPES.map((shape) => (
+              <TouchableOpacity
+                key={shape.id}
+                onPress={() => { haptic.light(); setSelectedShape(selectedShape === shape.id ? null : shape.id); }}
+                style={[styles.shapeCard, selectedShape === shape.id && styles.shapeCardActive]}
+              >
+                <Text style={{ fontSize: 28 }}>{shape.emoji}</Text>
+                <Text style={[styles.shapeName, selectedShape === shape.id && { color: Colors.primary }]}>
+                  {shape.name}
                 </Text>
-              </View>
-            </View>
-            {renderSliders('retouch')}
-            <View style={styles.colorSection}>
-              <Text style={styles.colorTitle}>Lip Color</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4 }}>
-                {MAKEUP_COLORS.map((color) => (
-                  <TouchableOpacity
-                    key={color}
-                    onPress={() => { haptic.light(); updateBeauty('lipColor', beautyValues.lipColor === color ? null : color); }}
-                    style={[styles.colorSwatch, { backgroundColor: color }, beautyValues.lipColor === color && styles.colorSwatchActive]}
-                  />
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {selectedShape && (() => {
+            const shape = FACE_SHAPES.find((s) => s.id === selectedShape)!;
+            return (
+              <View style={styles.shapeDetail}>
+                <Text style={styles.shapeDetailTitle}>{shape.emoji} {shape.name} Face</Text>
+                <Text style={styles.shapeDetailDesc}>{shape.description}</Text>
+                <Text style={styles.shapeDetailSubtitle}>💡 Personalized Tip</Text>
+                <Text style={styles.shapeDetailTip}>{shape.tip}</Text>
+                <Text style={styles.shapeDetailSubtitle}>⭐ Best Tools For You</Text>
+                {shape.bestTools.map((toolName) => (
+                  <View key={toolName} style={styles.recommendedTool}>
+                    <LinearGradient colors={Colors.gradients.accent} style={styles.recommendedDot} />
+                    <Text style={styles.recommendedToolText}>{toolName}</Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        haptic.light();
+                        const tool = BEAUTY_TOOLS.find((t) => t.label === toolName);
+                        switchTab(tool?.group === 'reshape' ? 'reshape' : 'retouch');
+                        if (tool) setActiveBeautyKey(tool.key); // open ready to edit
+                      }}
+                      style={styles.goBtn}
+                    >
+                      <Text style={styles.goBtnText}>Open →</Text>
+                    </TouchableOpacity>
+                  </View>
                 ))}
-              </ScrollView>
-            </View>
-          </>
-        )}
-
-        {/* ── RESHAPE ─────────────────────────── */}
-        {activeTab === 'reshape' && (
-          <>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoIcon}>✨</Text>
-              <View style={styles.infoText}>
-                <Text style={styles.infoTitle}>Face Reshaping</Text>
-                <Text style={styles.infoDesc}>
-                  Slim your face, refine your nose, and resize your eyes naturally.
-                </Text>
               </View>
-            </View>
-            {renderSliders('reshape')}
-          </>
-        )}
-
-        {/* ── FACE GUIDE ──────────────────────── */}
-        {activeTab === 'face-guide' && (
-          <>
-            <View style={styles.faceGuideBanner}>
-              <Ionicons name="information-circle-outline" size={20} color={Colors.primary} />
-              <Text style={styles.faceGuideBannerText}>
-                Select your face shape. We'll recommend the best beauty tools for you.
-              </Text>
-            </View>
-            <View style={styles.shapeGrid}>
-              {FACE_SHAPES.map((shape) => (
-                <TouchableOpacity
-                  key={shape.id}
-                  onPress={() => { haptic.light(); setSelectedShape(selectedShape === shape.id ? null : shape.id); }}
-                  style={[styles.shapeCard, selectedShape === shape.id && styles.shapeCardActive]}
-                >
-                  <Text style={{ fontSize: 28 }}>{shape.emoji}</Text>
-                  <Text style={[styles.shapeName, selectedShape === shape.id && { color: Colors.primary }]}>
-                    {shape.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {selectedShape && (() => {
-              const shape = FACE_SHAPES.find((s) => s.id === selectedShape)!;
-              return (
-                <View style={styles.shapeDetail}>
-                  <Text style={styles.shapeDetailTitle}>{shape.emoji} {shape.name} Face</Text>
-                  <Text style={styles.shapeDetailDesc}>{shape.description}</Text>
-                  <Text style={styles.shapeDetailSubtitle}>💡 Personalized Tip</Text>
-                  <Text style={styles.shapeDetailTip}>{shape.tip}</Text>
-                  <Text style={styles.shapeDetailSubtitle}>⭐ Best Tools For You</Text>
-                  {shape.bestTools.map((toolName) => (
-                    <View key={toolName} style={styles.recommendedTool}>
-                      <LinearGradient colors={Colors.gradients.accent} style={styles.recommendedDot} />
-                      <Text style={styles.recommendedToolText}>{toolName}</Text>
-                      <TouchableOpacity
-                        onPress={() => {
-                          haptic.light();
-                          setActiveTab(
-                            toolName === 'Face Slim' || toolName === 'Nose Slim' || toolName === 'Eye Size'
-                              ? 'reshape' : 'retouch'
-                          );
-                        }}
-                        style={styles.goBtn}
-                      >
-                        <Text style={styles.goBtnText}>Open →</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              );
-            })()}
-          </>
-        )}
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
+            );
+          })()}
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      ) : (
+        renderToolDock()
+      )}
     </View>
   );
 }
@@ -368,11 +335,40 @@ const styles = StyleSheet.create({
   tabLabel:    { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_600SemiBold', color: Colors.text.muted },
 
   preview: {
-    height: 160, marginHorizontal: 16, marginTop: 10,
+    flex: 1, marginHorizontal: 16, marginVertical: 10,
     borderRadius: Layout.radius.xl, overflow: 'hidden',
     backgroundColor: Colors.dark.card,
   },
   previewImage: { width: '100%', height: '100%' },
+
+  // Bottom controls dock (horizontal tool strip + single slider)
+  dock: {
+    backgroundColor: Colors.dark.surface,
+    borderTopWidth: 0.5, borderTopColor: Colors.dark.border,
+  },
+  sliderBar:      { paddingHorizontal: 20, paddingTop: 8 },
+  sliderLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  sliderName:     { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.accent },
+  sliderValue:    { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.text.secondary, minWidth: 32, textAlign: 'right' },
+  proHint:        { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, marginTop: 2 },
+  hint:           { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, textAlign: 'center', paddingVertical: 14 },
+
+  chipRow:        { paddingHorizontal: 12, paddingVertical: 8, gap: 6 },
+  chip:           { alignItems: 'center', width: 70, gap: 4 },
+  chipIcon: {
+    width: 52, height: 52, borderRadius: 14,
+    backgroundColor: Colors.dark.card,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: Colors.dark.border,
+  },
+  chipIconActive: { borderColor: Colors.accent, backgroundColor: '#21101D' },
+  chipDot:        { position: 'absolute', top: 6, right: 6, width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.accent },
+  chipPro:        { position: 'absolute', bottom: 4, backgroundColor: Colors.dark.background, borderRadius: 4, paddingHorizontal: 4 },
+  chipProText:    { fontSize: 7, fontFamily: 'Poppins_700Bold', color: Colors.accent },
+  chipLabel:      { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: Colors.text.muted, textAlign: 'center' },
+
+  lipRow:         { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 8, gap: 8 },
+  lipLabel:       { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.text.secondary },
 
   // Centered face region (approximate — assumes a portrait with face in the upper-center)
   faceRegion: {
@@ -458,8 +454,8 @@ const styles = StyleSheet.create({
 
   faceGuideBanner: {
     flexDirection: 'row', gap: 8, alignItems: 'flex-start',
-    backgroundColor: `${Colors.primary}15`, borderRadius: Layout.radius.md,
-    padding: 12, marginBottom: 16, borderWidth: 0.5, borderColor: `${Colors.primary}35`,
+    backgroundColor: '#0C1916', borderRadius: Layout.radius.md,
+    padding: 12, marginBottom: 16, borderWidth: 0.5, borderColor: Colors.primary,
   },
   faceGuideBannerText: { flex: 1, fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.secondary, lineHeight: 18 },
 
@@ -470,7 +466,7 @@ const styles = StyleSheet.create({
     padding: 12, alignItems: 'center', gap: 6,
     borderWidth: 1, borderColor: Colors.dark.border,
   },
-  shapeCardActive: { borderColor: Colors.primary, backgroundColor: `${Colors.primary}14` },
+  shapeCardActive: { borderColor: Colors.primary, backgroundColor: '#0C1915' },
   shapeName:       { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.text.secondary },
 
   shapeDetail: {
@@ -480,11 +476,11 @@ const styles = StyleSheet.create({
   shapeDetailTitle:    { fontSize: Layout.fontSize.lg, fontFamily: 'Poppins_700Bold', color: Colors.text.primary },
   shapeDetailDesc:     { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, lineHeight: 20 },
   shapeDetailSubtitle: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_600SemiBold', color: Colors.text.primary, marginTop: 4 },
-  shapeDetailTip:      { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_400Regular', color: Colors.text.secondary, lineHeight: 19, backgroundColor: `${Colors.primary}12`, borderRadius: Layout.radius.md, padding: 10 },
+  shapeDetailTip:      { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_400Regular', color: Colors.text.secondary, lineHeight: 19, backgroundColor: '#0C1715', borderRadius: Layout.radius.md, padding: 10 },
 
   recommendedTool: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6 },
   recommendedDot:  { width: 8, height: 8, borderRadius: 4 },
   recommendedToolText: { flex: 1, fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_500Medium', color: Colors.text.secondary },
-  goBtn:           { backgroundColor: `${Colors.primary}20`, borderRadius: Layout.radius.sm, paddingHorizontal: 10, paddingVertical: 4 },
+  goBtn:           { backgroundColor: '#0D2119', borderRadius: Layout.radius.sm, paddingHorizontal: 10, paddingVertical: 4 },
   goBtnText:       { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_600SemiBold', color: Colors.primary },
 });

@@ -4,6 +4,20 @@ import { User } from '../types';
 import { authService } from '../services/firebase/auth.service';
 import { localStorage } from '../services/storage/localStorage.service';
 import { purchaseService } from '../services/purchase/purchase.service';
+import { supabaseProfiles } from '../services/supabase/profiles.service';
+
+// Record the account in Supabase (best-effort; never blocks auth).
+function syncProfileToSupabase(user: User) {
+  supabaseProfiles
+    .upsert({
+      email: user.email,
+      displayName: user.displayName,
+      photoUrl: user.photoUrl,
+      isPremium: user.isPremium,
+      provider: user.provider,
+    })
+    .catch(() => {});
+}
 
 interface AuthState {
   user: User | null;
@@ -14,6 +28,7 @@ interface AuthState {
   // Actions
   initialize: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
+  socialSignIn: (provider: 'google' | 'facebook' | 'apple') => Promise<void>;
   register: (email: string, password: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
@@ -44,6 +59,7 @@ export const useAuthStore = create<AuthState>()(
             });
             if (user) {
               localStorage.setUserId(user.id);
+              syncProfileToSupabase(user);
               await purchaseService.loginUser(user.id).catch(() => {});
             }
           } catch {
@@ -61,6 +77,23 @@ export const useAuthStore = create<AuthState>()(
         const user = await authService.signInWithEmail(email, password);
         set((s) => { s.user = user; });
         localStorage.setUserId(user.id);
+        syncProfileToSupabase(user);
+        await purchaseService.loginUser(user.id).catch(() => {});
+      } catch (e: any) {
+        set((s) => { s.error = e.message; });
+        throw e;
+      } finally {
+        set((s) => { s.isLoading = false; });
+      }
+    },
+
+    socialSignIn: async (provider) => {
+      set((s) => { s.isLoading = true; s.error = null; });
+      try {
+        const user = await authService.signInWithProvider(provider);
+        set((s) => { s.user = user; });
+        localStorage.setUserId(user.id);
+        syncProfileToSupabase(user);
         await purchaseService.loginUser(user.id).catch(() => {});
       } catch (e: any) {
         set((s) => { s.error = e.message; });
@@ -76,6 +109,7 @@ export const useAuthStore = create<AuthState>()(
         const user = await authService.createAccount(email, password, displayName);
         set((s) => { s.user = user; });
         localStorage.setUserId(user.id);
+        syncProfileToSupabase(user);
       } catch (e: any) {
         set((s) => { s.error = e.message; });
         throw e;

@@ -10,11 +10,12 @@ import {
   Alert,
 } from 'react-native';
 import { router, Link } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@components/ui/SolidGradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { validateEmail, validatePassword } from '../../utils/validators';
+import { notify } from '../../utils/notify';
 import { haptic } from '../../utils/haptics';
 import { Colors } from '../../constants/Colors';
 import { Layout } from '../../constants/Layout';
@@ -26,7 +27,7 @@ export default function LoginScreen() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  const { signIn, isLoading, error, clearError } = useAuthStore();
+  const { signIn, socialSignIn, isLoading, error, clearError } = useAuthStore();
 
   const handleLogin = async () => {
     clearError();
@@ -45,7 +46,20 @@ export default function LoginScreen() {
       router.replace('/(tabs)');
     } catch (e: any) {
       haptic.error();
-      Alert.alert('Sign In Failed', e.message);
+      notify('Sign In Failed', e?.message ?? 'Please try again.');
+    }
+  };
+
+  const handleSocial = async (provider: 'Google' | 'Facebook' | 'Apple') => {
+    haptic.light();
+    clearError();
+    try {
+      await socialSignIn(provider.toLowerCase() as 'google' | 'facebook' | 'apple');
+      haptic.success();
+      router.replace('/(tabs)');
+    } catch (e: any) {
+      haptic.error();
+      notify(`Continue with ${provider}`, e?.message ?? 'Please try again.');
     }
   };
 
@@ -75,7 +89,7 @@ export default function LoginScreen() {
                 end={{ x: 1, y: 1 }}
                 style={styles.logoBox}
               >
-                <Text style={styles.logoIcon}>✦</Text>
+                <Ionicons name="aperture" size={38} color={Colors.white} />
               </LinearGradient>
               <Text style={styles.appName}>Erick</Text>
               <Text style={styles.welcomeText}>Welcome back</Text>
@@ -166,6 +180,37 @@ export default function LoginScreen() {
                 </LinearGradient>
               </TouchableOpacity>
             </View>
+
+            {/* Social sign-in */}
+            <View style={styles.dividerRow}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>or continue with</Text>
+              <View style={styles.dividerLine} />
+            </View>
+            <TouchableOpacity
+              onPress={() => handleSocial('Google')}
+              activeOpacity={0.85}
+              style={styles.socialBtn}
+            >
+              <Ionicons name="logo-google" size={20} color="#EA4335" />
+              <Text style={styles.socialText}>Continue with Google</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleSocial('Apple')}
+              activeOpacity={0.85}
+              style={styles.socialBtn}
+            >
+              <Ionicons name="logo-apple" size={20} color={Colors.text.primary} />
+              <Text style={styles.socialText}>Continue with Apple</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => handleSocial('Facebook')}
+              activeOpacity={0.85}
+              style={styles.socialBtn}
+            >
+              <Ionicons name="logo-facebook" size={20} color="#1877F2" />
+              <Text style={styles.socialText}>Continue with Facebook</Text>
+            </TouchableOpacity>
 
             {/* Register link */}
             <View style={styles.registerRow}>
@@ -293,6 +338,35 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 24,
+  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: Colors.dark.border },
+  dividerText: {
+    fontSize: Layout.fontSize.sm,
+    fontFamily: 'Poppins_400Regular',
+    color: Colors.text.muted,
+  },
+  socialBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: Colors.dark.card,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+    borderRadius: Layout.radius.md,
+    height: 52,
+    marginTop: 12,
+  },
+  socialText: {
+    fontSize: Layout.fontSize.base,
+    fontFamily: 'Poppins_600SemiBold',
+    color: Colors.text.primary,
+  },
   registerRow: {
     flexDirection: 'row',
     justifyContent: 'center',

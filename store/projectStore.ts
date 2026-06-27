@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Project } from '../types';
 import { localStorage } from '../services/storage/localStorage.service';
 import { firestoreService } from '../services/firebase/firestore.service';
+import { supabaseProjects } from '../services/supabase/projects.service';
 import { imageProcessor } from '../services/image/imageProcessor.service';
 
 interface ProjectState {
@@ -40,6 +41,22 @@ export const useProjectStore = create<ProjectState>()(
     loadProjects: () => {
       const cached = localStorage.getCachedProjects();
       set((s) => { s.projects = cached; });
+
+      // Hydrate from Supabase (cloud) in the background and merge in any projects
+      // this device doesn't have locally. Non-blocking; ignored if not configured.
+      supabaseProjects.listMine().then((cloud) => {
+        if (!cloud.length) return;
+        set((s) => {
+          const localIds = new Set(s.projects.map((p) => p.id));
+          for (const proj of cloud) {
+            if (!localIds.has(proj.id)) {
+              s.projects.push(proj);
+              localStorage.saveProject(proj);
+            }
+          }
+          s.projects.sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+        });
+      }).catch(() => {});
     },
 
     createProject: ({ userId, imageUri, width, height, fileSize, title }) => {
@@ -104,6 +121,7 @@ export const useProjectStore = create<ProjectState>()(
       set((s) => { s.projects = s.projects.filter((p) => p.id !== id); });
       localStorage.deleteProject(id);
       await firestoreService.deleteProject(id).catch(() => {});
+      supabaseProjects.remove(id).catch(() => {});
     },
 
     toggleFavorite: (id) => {
@@ -123,6 +141,8 @@ export const useProjectStore = create<ProjectState>()(
 
     syncToCloud: (project) => {
       firestoreService.saveProject(project).catch(() => {});
+      // Persist to Supabase Postgres (non-blocking; ignored if table/RLS not set up).
+      supabaseProjects.upsert(project).catch(() => {});
     },
 
     setError: (msg) => set((s) => { s.error = msg; }),

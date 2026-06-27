@@ -1,14 +1,13 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Dimensions,
   TouchableOpacity,
-  FlatList,
 } from 'react-native';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@components/ui/SolidGradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
@@ -54,11 +53,9 @@ const slides = [
 
 export default function OnboardingScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
-  const flatListRef = useRef<FlatList>(null);
 
   const handleNext = () => {
     if (activeIndex < slides.length - 1) {
-      flatListRef.current?.scrollToIndex({ index: activeIndex + 1 });
       setActiveIndex(activeIndex + 1);
     } else {
       handleGetStarted();
@@ -74,31 +71,25 @@ export default function OnboardingScreen() {
 
   const isLast = activeIndex === slides.length - 1;
 
+  const slide = slides[activeIndex];
+
   return (
     <View style={styles.container}>
-      <FlatList
-        ref={flatListRef}
-        data={slides}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        scrollEnabled={false}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={[styles.slide, { width }]}>
-            <LinearGradient
-              colors={item.gradient as [string, string]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.iconContainer}
-            >
-              <Text style={styles.icon}>{item.icon}</Text>
-            </LinearGradient>
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.subtitle}>{item.subtitle}</Text>
-          </View>
-        )}
-      />
+      {/* Render the active slide directly. (A horizontal FlatList with
+          programmatic scrollToIndex does not page reliably on web, which made
+          every "Next" tap show the first slide's text again.) */}
+      <View style={[styles.slide, { width }]} key={slide.id}>
+        <LinearGradient
+          colors={slide.gradient as [string, string]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.iconContainer}
+        >
+          <Text style={styles.icon}>{slide.icon}</Text>
+        </LinearGradient>
+        <Text style={styles.title}>{slide.title}</Text>
+        <Text style={styles.subtitle}>{slide.subtitle}</Text>
+      </View>
 
       {/* Indicators */}
       <View style={styles.indicators}>

@@ -3,10 +3,10 @@ import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, TextInput, FlatList,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from '@components/ui/SolidGradient';
 import { useEditorStore } from '../../store/editorStore';
 import { haptic } from '../../utils/haptics';
 import { Colors } from '../../constants/Colors';
@@ -79,6 +79,17 @@ const TEXT_ALIGNS = [
   { id: 'right',  icon: 'text-outline'   },
 ];
 
+// Text bubble styles (drawn behind the text).
+const BUBBLES: { id: 'none' | 'speech' | 'thought' | 'pill' | 'box' | 'outline'; label: string; icon: string }[] = [
+  { id: 'none',    label: 'None',    icon: 'ban-outline' },
+  { id: 'speech',  label: 'Speech',  icon: 'chatbubble-outline' },
+  { id: 'thought', label: 'Thought', icon: 'cloud-outline' },
+  { id: 'pill',    label: 'Pill',    icon: 'ellipse-outline' },
+  { id: 'box',     label: 'Box',     icon: 'square-outline' },
+  { id: 'outline', label: 'Outline', icon: 'scan-outline' },
+];
+const BUBBLE_COLORS = ['#FFFFFF','#000000','#22C55E','#7C3AED','#EC4899','#F59E0B','#3B82F6','#EF4444'];
+
 const STICKER_CATEGORIES = ['Emoji','Hearts','Stars','Nature','Food','Sport','Fashion','Travel'];
 const STICKERS: Record<string, string[]> = {
   Emoji:   ['😀','😍','🥰','😎','🤩','😂','🙌','🔥','✨','💫','🎉','🎊','😜','🤣','😇','🥳'],
@@ -111,7 +122,10 @@ const BRUSH_SIZES = [2, 4, 8, 12, 20, 32];
 
 export default function CreativeScreen() {
   const addTextOverlay = useEditorStore((s) => s.addTextOverlay);
-  const [activeTab, setActiveTab] = useState<CreativeTab>('text');
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
+  const [activeTab, setActiveTab] = useState<CreativeTab>(
+    (['text', 'stickers', 'frames', 'drawing'].includes(tab as string) ? tab : 'text') as CreativeTab,
+  );
   const [textInput, setTextInput] = useState('');
   const [selectedFont, setSelectedFont] = useState('Poppins');
   const [fontCategory, setFontCategory] = useState('All');
@@ -125,6 +139,8 @@ export default function CreativeScreen() {
   const [selectedFrame, setSelectedFrame] = useState('none');
   const [brushColor, setBrushColor] = useState('#FFFFFF');
   const [brushSize, setBrushSize] = useState(8);
+  const [bubble, setBubble] = useState<'none' | 'speech' | 'thought' | 'pill' | 'box' | 'outline'>('none');
+  const [bubbleColor, setBubbleColor] = useState('#FFFFFF');
 
   const TABS: { id: CreativeTab; icon: string; label: string }[] = [
     { id: 'text',     icon: 'text-outline',    label: 'Text'     },
@@ -212,6 +228,34 @@ export default function CreativeScreen() {
               </ScrollView>
             </View>
 
+            {/* Text bubble */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Bubble</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                {BUBBLES.map((b) => (
+                  <TouchableOpacity
+                    key={b.id}
+                    onPress={() => { haptic.light(); setBubble(b.id); }}
+                    style={[styles.bubbleChip, bubble === b.id && styles.bubbleChipActive]}
+                  >
+                    <Ionicons name={b.icon as any} size={18} color={bubble === b.id ? Colors.primary : Colors.text.muted} />
+                    <Text style={[styles.bubbleChipText, bubble === b.id && { color: Colors.primary }]}>{b.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              {bubble !== 'none' && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginTop: 4 }}>
+                  {BUBBLE_COLORS.map((c) => (
+                    <TouchableOpacity
+                      key={c}
+                      onPress={() => { haptic.light(); setBubbleColor(c); }}
+                      style={[styles.colorDot, { backgroundColor: c }, bubbleColor === c && styles.colorDotActive]}
+                    />
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+
             {/* Font category */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Font Style</Text>
@@ -261,6 +305,8 @@ export default function CreativeScreen() {
                   italic: isItalic,
                   x: 0.3,
                   y: 0.4,
+                  bubble,
+                  bubbleColor,
                 });
                 router.back();
               }}
@@ -470,7 +516,7 @@ const styles = StyleSheet.create({
 
   styleRow: { flexDirection: 'row', gap: 8, marginTop: -8 },
   styleBtn: { width: 40, height: 40, borderRadius: Layout.radius.md, backgroundColor: Colors.dark.card, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: Colors.dark.border },
-  styleBtnActive: { backgroundColor: `${Colors.primary}20`, borderColor: Colors.primary },
+  styleBtnActive: { backgroundColor: '#0D2119', borderColor: Colors.primary },
   styleBtnText: { fontSize: 16, fontFamily: 'Poppins_700Bold', color: Colors.text.secondary },
 
   sizeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -484,7 +530,7 @@ const styles = StyleSheet.create({
 
   catRow: { paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   catChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: Layout.radius.full, backgroundColor: Colors.dark.card, borderWidth: 0.5, borderColor: Colors.dark.border },
-  catChipActive: { backgroundColor: `${Colors.primary}20`, borderColor: Colors.primary },
+  catChipActive: { backgroundColor: '#0D2119', borderColor: Colors.primary },
   catChipText: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_500Medium', color: Colors.text.secondary },
 
   fontGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -494,7 +540,15 @@ const styles = StyleSheet.create({
     padding: 10, alignItems: 'center', gap: 2,
     borderWidth: 0.5, borderColor: Colors.dark.border,
   },
-  fontCardActive: { borderColor: Colors.primary, backgroundColor: `${Colors.primary}14` },
+  fontCardActive: { borderColor: Colors.primary, backgroundColor: '#0C1915' },
+  bubbleChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: Layout.radius.full,
+    backgroundColor: Colors.dark.card, borderWidth: 0.5, borderColor: Colors.dark.border,
+  },
+  bubbleChipActive: { backgroundColor: '#0D2119', borderColor: Colors.primary },
+  bubbleChipText: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_500Medium', color: Colors.text.secondary },
+
   fontPreview: { fontSize: 22, fontFamily: 'Poppins_700Bold', color: Colors.text.primary },
   fontName: { fontSize: 9, fontFamily: 'Poppins_600SemiBold', color: Colors.text.secondary, textAlign: 'center' },
   fontCategory: { fontSize: 8, fontFamily: 'Poppins_400Regular', color: Colors.text.muted },
@@ -515,12 +569,12 @@ const styles = StyleSheet.create({
   frameLabel: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: Colors.text.secondary, textAlign: 'center' },
 
   penCard: { backgroundColor: Colors.dark.card, borderRadius: Layout.radius.md, padding: 10, alignItems: 'center', gap: 4, minWidth: 68, borderWidth: 0.5, borderColor: Colors.dark.border },
-  penCardActive: { borderColor: Colors.primary, backgroundColor: `${Colors.primary}14` },
+  penCardActive: { borderColor: Colors.primary, backgroundColor: '#0C1915' },
   penLabel: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: Colors.text.secondary },
 
   brushSizeRow: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   brushSizeItem: { width: 44, height: 44, borderRadius: 8, backgroundColor: Colors.dark.card, alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: Colors.dark.border },
-  brushSizeItemActive: { borderColor: Colors.primary, backgroundColor: `${Colors.primary}20` },
+  brushSizeItemActive: { borderColor: Colors.primary, backgroundColor: '#0D2119' },
   brushDot: { borderRadius: 50 },
   drawingCanvas: { height: 160, backgroundColor: Colors.dark.card, borderRadius: Layout.radius.xl, alignItems: 'center', justifyContent: 'center', gap: 8, borderWidth: 0.5, borderColor: Colors.dark.border },
   drawingHint: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_400Regular', color: Colors.text.muted },
