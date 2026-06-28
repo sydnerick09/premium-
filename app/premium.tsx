@@ -18,8 +18,11 @@ import { Layout } from '../constants/Layout';
 // Cap to a phone-width column so it looks/behaves the same on desktop & laptop.
 const COL_W = Math.min(Layout.window.width, 460);
 const SLIDE_W = COL_W;
-const CARD_W = Math.round(COL_W * 0.50);
-const CARD_H = Math.round(CARD_W * 1.5);
+// Cards are full-width and landscape, matching the 1168x912 (~1.28:1) images,
+// so the photo fills the width with no side gaps and no cropping.
+const IMG_RATIO = 1168 / 912;
+const CARD_W = COL_W - 32;
+const CARD_H = Math.round(CARD_W / IMG_RATIO);
 
 // ── Hero cards — ONE portrait image per card ─────────────────────────────────
 // To change a picture, just replace the matching file in assets/premium/ with
