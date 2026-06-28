@@ -44,6 +44,18 @@ export default function VaultScreen() {
   const [pin, setPin] = useState('');
   const [confirm, setConfirm] = useState('');
   const [items, setItems] = useState<string[]>([]);
+  // Full-screen viewer (index of the photo being viewed) + delete confirmation.
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<number | null>(null);
+  const [countdown, setCountdown] = useState(3);
+
+  // 3-second safety countdown before the permanent "Delete forever" is allowed.
+  useEffect(() => {
+    if (pendingDelete === null) return;
+    setCountdown(3);
+    const t = setInterval(() => setCountdown((c) => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(t);
+  }, [pendingDelete]);
 
   useEffect(() => {
     if (!isWeb) { setMode('locked'); return; }
@@ -79,9 +91,21 @@ export default function VaultScreen() {
     } catch { Alert.alert('Vault', 'Could not add photos (storage may be full).'); }
   };
 
-  const removeItem = (idx: number) => {
+  // Permanently delete the pending photo from the vault (cannot be recovered).
+  const confirmDelete = () => {
+    if (pendingDelete === null) return;
+    const idx = pendingDelete;
     haptic.medium();
     persist(items.filter((_, i) => i !== idx));
+    setPendingDelete(null);
+    // Keep the viewer pointing at a valid photo (or close it if none remain).
+    setViewerIndex((v) => {
+      if (v === null) return null;
+      const remaining = items.length - 1;
+      if (remaining <= 0) return null;
+      if (v === idx) return Math.min(idx, remaining - 1);
+      return v > idx ? v - 1 : v;
+    });
   };
 
   // ── Lock / setup screens ────────────────────────────────────────────────────
@@ -145,21 +169,87 @@ export default function VaultScreen() {
           <Ionicons name="add" size={26} color={Colors.primary} />
           <Text style={styles.addBoxText}>Add photos to vault</Text>
         </TouchableOpacity>
+        {isWeb && (
+          <Text style={styles.webNote}>
+            A copy is hidden here in your vault. On the web, the original stays in your device gallery — delete it there to fully hide it.
+          </Text>
+        )}
         {items.length === 0 ? (
           <Text style={styles.empty}>No photos yet. Added photos are hidden here behind your passcode.</Text>
         ) : (
-          <View style={styles.grid}>
-            {items.map((u, idx) => (
-              <View key={idx} style={styles.thumbWrap}>
-                <Image source={{ uri: u }} style={styles.thumb} resizeMode="cover" />
-                <TouchableOpacity onPress={() => removeItem(idx)} style={styles.thumbRemove}>
-                  <Ionicons name="trash" size={13} color={Colors.white} />
+          <>
+            <Text style={styles.hint}>Tap a photo to view it. Tap the trash icon to delete it forever.</Text>
+            <View style={styles.grid}>
+              {items.map((u, idx) => (
+                <TouchableOpacity key={idx} style={styles.thumbWrap} activeOpacity={0.85} onPress={() => { haptic.light(); setViewerIndex(idx); }}>
+                  <Image source={{ uri: u }} style={styles.thumb} resizeMode="cover" />
+                  <TouchableOpacity onPress={() => { haptic.light(); setPendingDelete(idx); }} style={styles.thumbRemove} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="trash" size={13} color={Colors.white} />
+                  </TouchableOpacity>
                 </TouchableOpacity>
-              </View>
-            ))}
-          </View>
+              ))}
+            </View>
+          </>
         )}
       </ScrollView>
+
+      {/* ── Full-screen photo viewer ─────────────────────────────────── */}
+      {viewerIndex !== null && items[viewerIndex] && (
+        <View style={styles.viewer}>
+          <SafeAreaView edges={['top']} style={styles.viewerHeader}>
+            <Text style={styles.viewerCount}>{viewerIndex + 1} / {items.length}</Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity onPress={() => setPendingDelete(viewerIndex)} style={styles.viewerIconBtn}>
+                <Ionicons name="trash-outline" size={22} color={Colors.white} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setViewerIndex(null)} style={styles.viewerIconBtn}>
+                <Ionicons name="close" size={24} color={Colors.white} />
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+
+          <View style={styles.viewerBody}>
+            <Image source={{ uri: items[viewerIndex] }} style={styles.viewerImage} resizeMode="contain" />
+            {viewerIndex > 0 && (
+              <TouchableOpacity onPress={() => setViewerIndex(viewerIndex - 1)} style={[styles.navBtn, { left: 12 }]}>
+                <Ionicons name="chevron-back" size={26} color={Colors.white} />
+              </TouchableOpacity>
+            )}
+            {viewerIndex < items.length - 1 && (
+              <TouchableOpacity onPress={() => setViewerIndex(viewerIndex + 1)} style={[styles.navBtn, { right: 12 }]}>
+                <Ionicons name="chevron-forward" size={26} color={Colors.white} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* ── Delete confirmation (3s safety, permanent) ───────────────── */}
+      {pendingDelete !== null && (
+        <View style={styles.confirmOverlay}>
+          <View style={styles.confirmCard}>
+            <View style={styles.confirmIcon}><Ionicons name="warning" size={28} color={Colors.error} /></View>
+            <Text style={styles.confirmTitle}>Delete forever?</Text>
+            <Text style={styles.confirmDesc}>
+              This photo will be permanently deleted from your vault. It is NOT moved back to your files — it cannot be recovered.
+            </Text>
+            <View style={styles.confirmActions}>
+              <TouchableOpacity onPress={() => setPendingDelete(null)} style={styles.confirmCancel}>
+                <Text style={styles.confirmCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={confirmDelete}
+                disabled={countdown > 0}
+                style={[styles.confirmDelete, countdown > 0 && { opacity: 0.5 }]}
+              >
+                <Text style={styles.confirmDeleteText}>
+                  {countdown > 0 ? `Delete forever (${countdown})` : 'Delete forever'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -182,6 +272,29 @@ const styles = StyleSheet.create({
 
   addBox: { height: 80, borderRadius: Layout.radius.lg, borderWidth: 1.5, borderStyle: 'dashed', borderColor: Colors.dark.border, alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: Colors.dark.card },
   addBoxText: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.text.secondary },
+  webNote: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, lineHeight: 17, paddingHorizontal: 4 },
+  hint: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, paddingHorizontal: 4 },
+
+  // Full-screen viewer
+  viewer: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000000', zIndex: 50 },
+  viewerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10 },
+  viewerCount: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.white },
+  viewerIconBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  viewerBody: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  viewerImage: { width: '100%', height: '100%' },
+  navBtn: { position: 'absolute', top: '50%', marginTop: -22, width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+
+  // Delete confirmation
+  confirmOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center', padding: 24, zIndex: 100 },
+  confirmCard: { width: '100%', maxWidth: 360, backgroundColor: Colors.dark.card, borderRadius: Layout.radius.xl, padding: 22, alignItems: 'center', gap: 10, borderWidth: 0.5, borderColor: Colors.dark.border },
+  confirmIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#2A1212', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  confirmTitle: { fontSize: Layout.fontSize.lg, fontFamily: 'Poppins_700Bold', color: Colors.text.primary },
+  confirmDesc: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_400Regular', color: Colors.text.secondary, textAlign: 'center', lineHeight: 20 },
+  confirmActions: { flexDirection: 'row', gap: 12, marginTop: 8, width: '100%' },
+  confirmCancel: { flex: 1, paddingVertical: 13, borderRadius: Layout.radius.md, backgroundColor: Colors.dark.surface, alignItems: 'center' },
+  confirmCancelText: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.text.secondary },
+  confirmDelete: { flex: 1.4, paddingVertical: 13, borderRadius: Layout.radius.md, backgroundColor: Colors.error, alignItems: 'center' },
+  confirmDeleteText: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_700Bold', color: Colors.white },
   empty: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, textAlign: 'center', marginTop: 24, paddingHorizontal: 20, lineHeight: 20 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   thumbWrap: { width: (Layout.window.width - 32 - 16) / 3, aspectRatio: 1, borderRadius: 10, overflow: 'hidden', backgroundColor: Colors.dark.card },

@@ -1,115 +1,97 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, ActivityIndicator, Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert,
+  NativeSyntheticEvent, NativeScrollEvent,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from '@components/ui/SolidGradient';
 import { useAuthStore } from '../store/authStore';
 import { purchaseService } from '../services/purchase/purchase.service';
 import { haptic } from '../utils/haptics';
 import { Colors } from '../constants/Colors';
 import { Layout } from '../constants/Layout';
 
-const FEATURES = [
-  { icon: 'flash-outline', label: 'AI Background Removal', desc: 'Remove any background instantly' },
-  { icon: 'color-filter-outline', label: '100+ Premium Filters', desc: 'Exclusive cinematic LUTs & effects' },
-  { icon: 'sparkles-outline', label: 'Advanced Beauty Tools', desc: 'Face reshape, teeth whitening & more' },
-  { icon: 'cloud-upload-outline', label: '10 GB Cloud Storage', desc: 'Backup & sync all your projects' },
-  { icon: 'download-outline', label: '4K Export', desc: 'Export up to 3840px resolution' },
-  { icon: 'layers-outline', label: 'Unlimited Layers', desc: 'Advanced multi-layer editing' },
-  { icon: 'ban-outline', label: 'No Ads', desc: 'Pure, distraction-free editing' },
-  { icon: 'infinite-outline', label: 'Unlimited Exports', desc: 'Export as many times as you want' },
+const CARD_W = Layout.window.width - 32;
+
+// ── Auto-animated hero slides (designed — no external photos needed) ──────────
+type Slide =
+  | { kind: 'compare' }
+  | { kind: 'promo'; bg: string; icon: string; title: string; sub: string };
+
+const SLIDES: Slide[] = [
+  { kind: 'compare' },
+  { kind: 'promo', bg: '#7C3AED', icon: 'color-filter', title: 'Stunning Filters', sub: 'Upgrade your images with one tap.' },
+  { kind: 'promo', bg: '#0E9F6E', icon: 'leaf',         title: 'Make Nature Pop',  sub: 'Vivid greens, skies & landscapes.' },
+  { kind: 'promo', bg: '#F97316', icon: 'basketball',   title: 'Sharp Action Shots', sub: 'Football, basketball — freeze the moment.' },
+  { kind: 'promo', bg: '#EC4899', icon: 'sparkles',     title: 'Creative Studio',  sub: '200+ templates, 500+ stickers & collage.' },
 ];
 
-interface Plan {
-  id: string;
-  label: string;
-  price: string;
-  period: string;
-  badge?: string;
-  isBest?: boolean;
-  productId: string;
-}
+const BASIC = ['Basic colour balance', 'Minor blemish reduction', 'Natural look'];
+const PREMIUM_LIST = ['Advanced skin retouching', 'Enhanced colours & contrast', 'Sharper details', 'Professional finish'];
 
+const CHIPS = [
+  { icon: 'albums',   label: '200+ Templates' },
+  { icon: 'happy',    label: '500+ Stickers' },
+  { icon: 'grid',     label: 'Collage' },
+  { icon: 'flash',    label: 'AI Enhance' },
+  { icon: 'cut',      label: 'Remove BG' },
+  { icon: 'download', label: '4K Export' },
+];
+
+const BENEFITS = [
+  'No ads — ever',
+  'Edit everything for free',
+  'All premium tools unlocked',
+  '7-day free trial, cancel anytime',
+];
+
+interface Plan { id: string; label: string; price: string; per: string; sub: string; badge?: string; best?: boolean; productId: string; }
 const PLANS: Plan[] = [
-  {
-    id: 'weekly',
-    label: 'Weekly',
-    price: '$1.99',
-    period: '/ week',
-    productId: 'erick_premium_weekly',
-  },
-  {
-    id: 'monthly',
-    label: 'Monthly',
-    price: '$4.99',
-    period: '/ month',
-    badge: 'Most Popular',
-    isBest: true,
-    productId: 'erick_premium_monthly',
-  },
-  {
-    id: 'yearly',
-    label: 'Yearly',
-    price: '$29.99',
-    period: '/ year',
-    badge: 'Save 50%',
-    productId: 'erick_premium_yearly',
-  },
+  { id: 'yearly',  label: 'Yearly',   price: '$47', per: '/year',  sub: '7-day free trial, then $47/year', badge: 'BEST VALUE', best: true, productId: 'gweno_premium_yearly' },
+  { id: 'quarter', label: '3 Months', price: '$15', per: '/3 mo',  sub: 'Limited-time offer',              badge: 'SAVE',                  productId: 'gweno_premium_quarter' },
+  { id: 'monthly', label: 'Monthly',  price: '$7',  per: '/month', sub: 'Billed monthly',                                                  productId: 'gweno_premium_monthly' },
 ];
 
 export default function PremiumScreen() {
-  const { user, refreshUser } = useAuthStore();
-  const [selectedPlan, setSelectedPlan] = useState<string>('monthly');
-  const [offerings, setOfferings] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { refreshUser } = useAuthStore();
+  const [selectedPlan, setSelectedPlan] = useState('yearly');
+  const [slide, setSlide] = useState(0);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
-  const isPremium = user?.isPremium ?? false;
-
+  // Auto-advance the hero carousel to keep it lively.
   useEffect(() => {
-    loadOfferings();
+    const t = setInterval(() => {
+      setSlide((s) => {
+        const next = (s + 1) % SLIDES.length;
+        scrollRef.current?.scrollTo({ x: next * CARD_W, animated: true });
+        return next;
+      });
+    }, 3500);
+    return () => clearInterval(t);
   }, []);
 
-  const loadOfferings = async () => {
-    try {
-      const o = await purchaseService.getOfferings();
-      setOfferings(o);
-    } catch {
-      // Use static plan data as fallback
-    } finally {
-      setIsLoading(false);
-    }
+  const onCarouselScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    setSlide(Math.round(e.nativeEvent.contentOffset.x / CARD_W));
   };
+
+  const plan = PLANS.find((p) => p.id === selectedPlan)!;
 
   const handleSubscribe = async () => {
     haptic.medium();
     setIsPurchasing(true);
     try {
-      const plan = PLANS.find((p) => p.id === selectedPlan);
-      if (!plan) return;
-
-      // In production, use offerings?.current?.availablePackages with matching product
-      await purchaseService.purchasePackage(
-        offerings?.current?.availablePackages?.find((pkg: any) =>
-          pkg.product.identifier === plan.productId
-        ) ?? { product: { identifier: plan.productId } }
-      );
-
+      await purchaseService.purchasePackage({ product: { identifier: plan.productId } } as any);
       haptic.success();
       await refreshUser();
-      Alert.alert('Welcome to Premium! 🎉', 'All premium features are now unlocked.', [
+      Alert.alert('Your 7-day free trial has started 🎉', 'Enjoy every premium tool — ad-free.', [
         { text: 'Start Editing', onPress: () => router.back() },
       ]);
     } catch (e: any) {
       haptic.error();
-      if (!e?.message?.includes('cancelled')) {
-        Alert.alert('Purchase Failed', e?.message ?? 'Please try again.');
-      }
+      if (!e?.message?.includes('cancelled')) Alert.alert('Checkout', e?.message ?? 'Please try again.');
     } finally {
       setIsPurchasing(false);
     }
@@ -119,171 +101,159 @@ export default function PremiumScreen() {
     haptic.light();
     setIsRestoring(true);
     try {
-      const restored = await purchaseService.restorePurchases();
-      if (restored) {
-        haptic.success();
-        await refreshUser();
-        Alert.alert('Restored!', 'Your premium subscription has been restored.', [
-          { text: 'Continue', onPress: () => router.back() },
-        ]);
-      } else {
-        Alert.alert('No Subscription Found', 'No active subscription found for this account.');
-      }
+      const ok = await purchaseService.restorePurchases();
+      await refreshUser();
+      Alert.alert(ok ? 'Restored!' : 'No subscription found', ok ? 'Your premium access is back.' : 'No active subscription for this account.');
     } catch {
-      Alert.alert('Error', 'Could not restore purchases. Please try again.');
+      Alert.alert('Error', 'Could not restore. Please try again.');
     } finally {
       setIsRestoring(false);
     }
   };
-
-  if (isPremium) {
-    return (
-      <View style={styles.container}>
-        <SafeAreaView edges={['top']}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
-              <Ionicons name="close" size={24} color={Colors.text.primary} />
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-        <View style={styles.alreadyPremium}>
-          <LinearGradient colors={Colors.gradients.gold} style={styles.crownGrad}>
-            <Text style={styles.crownIcon}>👑</Text>
-          </LinearGradient>
-          <Text style={styles.alreadyTitle}>You're Premium!</Text>
-          <Text style={styles.alreadyDesc}>Enjoy all premium features. Thank you for your support!</Text>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backToEditingBtn}>
-            <LinearGradient colors={Colors.gradients.primary} style={styles.backToEditingGrad}>
-              <Text style={styles.backToEditingText}>Back to Editing</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
       <SafeAreaView edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
-            <Ionicons name="close" size={24} color={Colors.text.primary} />
+            <Ionicons name="arrow-back" size={24} color={Colors.text.primary} />
           </TouchableOpacity>
+          <TouchableOpacity onPress={handleRestore} disabled={isRestoring}>
+            {isRestoring ? <ActivityIndicator size="small" color={Colors.text.muted} /> : <Text style={styles.restore}>Restore</Text>}
+          </TouchableOpacity>
+        </View>
+        {/* Brand */}
+        <View style={styles.brandRow}>
+          <Text style={styles.brand}>Gweno</Text>
+          <View style={styles.proPill}><Text style={styles.proPillText}>PRO</Text></View>
         </View>
       </SafeAreaView>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {/* Hero */}
-        <LinearGradient colors={Colors.gradients.premium} style={styles.hero}>
-          <Text style={styles.heroIcon}>👑</Text>
-          <Text style={styles.heroTitle}>Gweno Premium</Text>
-          <Text style={styles.heroSubtitle}>Unlock your full creative potential</Text>
-        </LinearGradient>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 16 }}>
+        {/* ── Hero carousel ─────────────────────────────────────────── */}
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={onCarouselScroll}
+          style={{ marginTop: 8 }}
+        >
+          {SLIDES.map((s, i) => (
+            <View key={i} style={[styles.slide, { width: CARD_W }]}>
+              {s.kind === 'compare' ? (
+                <View style={styles.compare}>
+                  <View style={[styles.compareCol, { backgroundColor: '#23232B' }]}>
+                    <Text style={styles.compareTag}>BASIC EDIT</Text>
+                    <Text style={styles.compareSub}>Fast & Simple</Text>
+                    {BASIC.map((b) => (
+                      <View key={b} style={styles.compareRow}>
+                        <Ionicons name="checkmark" size={13} color={Colors.text.muted} />
+                        <Text style={styles.compareItemDim}>{b}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  <View style={[styles.compareCol, { backgroundColor: '#0E9F6E' }]}>
+                    <Text style={[styles.compareTag, { color: Colors.white }]}>PREMIUM EDIT</Text>
+                    <Text style={[styles.compareSub, { color: 'rgba(255,255,255,0.9)' }]}>Professional & Polished</Text>
+                    {PREMIUM_LIST.map((b) => (
+                      <View key={b} style={styles.compareRow}>
+                        <Ionicons name="checkmark" size={13} color={Colors.white} />
+                        <Text style={styles.compareItem}>{b}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : (
+                <View style={[styles.promo, { backgroundColor: s.bg }]}>
+                  <Ionicons name={s.icon as any} size={54} color={Colors.white} />
+                  <Text style={styles.promoTitle}>{s.title}</Text>
+                  <Text style={styles.promoSub}>{s.sub}</Text>
+                </View>
+              )}
+            </View>
+          ))}
+        </ScrollView>
 
-        {/* Features */}
-        <View style={styles.featuresSection}>
-          <Text style={styles.featuresTitle}>Everything included</Text>
-          {FEATURES.map((f) => (
-            <View key={f.icon} style={styles.featureRow}>
-              <LinearGradient colors={Colors.gradients.primary} style={styles.featureIconBg}>
-                <Ionicons name={f.icon as any} size={16} color={Colors.white} />
-              </LinearGradient>
-              <View style={styles.featureText}>
-                <Text style={styles.featureLabel}>{f.label}</Text>
-                <Text style={styles.featureDesc}>{f.desc}</Text>
-              </View>
-              <Ionicons name="checkmark-circle" size={20} color={Colors.success} />
+        {/* Dots */}
+        <View style={styles.dots}>
+          {SLIDES.map((_, i) => (
+            <View key={i} style={[styles.dot, i === slide && styles.dotActive]} />
+          ))}
+        </View>
+
+        {/* ── Feature chips ─────────────────────────────────────────── */}
+        <Text style={styles.sectionTitle}>Unlock all features to edit</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+          {CHIPS.map((c) => (
+            <View key={c.label} style={styles.chip}>
+              <Ionicons name={c.icon as any} size={18} color={Colors.primary} />
+              <Text style={styles.chipText}>{c.label}</Text>
+            </View>
+          ))}
+        </ScrollView>
+
+        {/* ── Benefits ──────────────────────────────────────────────── */}
+        <View style={styles.benefits}>
+          {BENEFITS.map((b) => (
+            <View key={b} style={styles.benefitRow}>
+              <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />
+              <Text style={styles.benefitText}>{b}</Text>
             </View>
           ))}
         </View>
 
-        {/* Plans */}
-        <View style={styles.plansSection}>
-          <Text style={styles.plansTitle}>Choose a plan</Text>
-          {isLoading ? (
-            <ActivityIndicator color={Colors.primary} style={{ paddingVertical: 20 }} />
-          ) : (
-            <View style={styles.plansList}>
-              {PLANS.map((plan) => (
-                <TouchableOpacity
-                  key={plan.id}
-                  onPress={() => { haptic.light(); setSelectedPlan(plan.id); }}
-                  style={[styles.planCard, selectedPlan === plan.id && styles.planCardActive]}
-                >
-                  {selectedPlan === plan.id && (
-                    <LinearGradient
-                      colors={['#0C1916', '#0A1315']}
-                      style={StyleSheet.absoluteFillObject as any}
-                    />
-                  )}
-                  <View style={styles.planLeft}>
-                    <View style={[styles.planRadio, selectedPlan === plan.id && styles.planRadioActive]}>
-                      {selectedPlan === plan.id && <View style={styles.planRadioInner} />}
-                    </View>
-                    <View>
-                      <Text style={[styles.planLabel, selectedPlan === plan.id && { color: Colors.primary }]}>
-                        {plan.label}
-                      </Text>
-                      {plan.badge && (
-                        <LinearGradient
-                          colors={plan.isBest ? Colors.gradients.primary : Colors.gradients.gold}
-                          style={styles.planBadge}
-                        >
-                          <Text style={styles.planBadgeText}>{plan.badge}</Text>
-                        </LinearGradient>
-                      )}
-                    </View>
+        {/* ── Plans ─────────────────────────────────────────────────── */}
+        <View style={styles.plans}>
+          {PLANS.map((p) => {
+            const active = selectedPlan === p.id;
+            return (
+              <TouchableOpacity key={p.id} onPress={() => { haptic.light(); setSelectedPlan(p.id); }} style={[styles.planCard, active && styles.planCardActive]}>
+                <View style={[styles.radio, active && styles.radioActive]}>{active && <View style={styles.radioDot} />}</View>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.planTop}>
+                    <Text style={[styles.planLabel, active && { color: Colors.primary }]}>{p.label}</Text>
+                    {p.badge && <View style={[styles.planBadge, p.best && styles.planBadgeBest]}><Text style={styles.planBadgeText}>{p.badge}</Text></View>}
                   </View>
-                  <View style={styles.planRight}>
-                    <Text style={[styles.planPrice, selectedPlan === plan.id && { color: Colors.primary }]}>
-                      {plan.price}
-                    </Text>
-                    <Text style={styles.planPeriod}>{plan.period}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+                  <Text style={styles.planSub}>{p.sub}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={[styles.planPrice, active && { color: Colors.primary }]}>{p.price}</Text>
+                  <Text style={styles.planPer}>{p.per}</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
-        {/* Legal */}
-        <Text style={styles.legalText}>
-          Subscription renews automatically. Cancel anytime.{'\n'}
-          By continuing, you agree to our{' '}
-          <Text style={styles.legalLink} onPress={() => router.push('/terms')}>Terms</Text>
-          {' '}and{' '}
-          <Text style={styles.legalLink} onPress={() => router.push('/privacy-policy')}>Privacy Policy</Text>.
+        {/* Trial + payment note */}
+        <Text style={styles.trialNote}>
+          Your 7-day free trial starts after you add your account & card details. Cancel anytime before it ends and you won’t be charged.
         </Text>
-
-        <TouchableOpacity onPress={handleRestore} disabled={isRestoring} style={styles.restoreBtn}>
-          {isRestoring ? (
-            <ActivityIndicator size="small" color={Colors.text.muted} />
-          ) : (
-            <Text style={styles.restoreText}>Restore Purchases</Text>
-          )}
-        </TouchableOpacity>
-
-        <View style={{ height: 100 }} />
+        <View style={styles.payRow}>
+          <Ionicons name="card-outline" size={16} color={Colors.text.muted} />
+          <Text style={styles.payText}>Visa · Mastercard · Debit cards only</Text>
+        </View>
+        <View style={{ height: 110 }} />
       </ScrollView>
 
-      {/* CTA */}
+      {/* ── CTA ───────────────────────────────────────────────────── */}
       <View style={styles.ctaBar}>
-        <TouchableOpacity onPress={handleSubscribe} disabled={isPurchasing} style={styles.subscribeBtn}>
-          <LinearGradient colors={Colors.gradients.primary} style={styles.subscribeBtnGrad}>
-            {isPurchasing ? (
-              <ActivityIndicator color={Colors.white} />
-            ) : (
-              <>
-                <Text style={styles.subscribeBtnText}>
-                  Start {PLANS.find((p) => p.id === selectedPlan)?.label} Plan
-                </Text>
-                <Text style={styles.subscribeBtnPrice}>
-                  {PLANS.find((p) => p.id === selectedPlan)?.price}{PLANS.find((p) => p.id === selectedPlan)?.period}
-                </Text>
-              </>
-            )}
-          </LinearGradient>
+        <TouchableOpacity onPress={handleSubscribe} disabled={isPurchasing} style={styles.cta}>
+          {isPurchasing ? (
+            <ActivityIndicator color={Colors.white} />
+          ) : (
+            <>
+              <Text style={styles.ctaText}>Start 7-Day Free Trial</Text>
+              <Text style={styles.ctaSub}>Then {plan.price}{plan.per} · Cancel anytime</Text>
+            </>
+          )}
         </TouchableOpacity>
+        <Text style={styles.legal}>
+          By continuing you agree to our{' '}
+          <Text style={styles.legalLink} onPress={() => router.push('/terms')}>Terms</Text> &{' '}
+          <Text style={styles.legalLink} onPress={() => router.push('/privacy-policy')}>Privacy</Text>.
+        </Text>
       </View>
     </View>
   );
@@ -291,65 +261,62 @@ export default function PremiumScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.dark.background },
-  header: { paddingHorizontal: 16, paddingVertical: 12 },
-  scroll: { paddingBottom: 20 },
-  hero: {
-    alignItems: 'center', paddingVertical: 36, paddingHorizontal: 24,
-    marginHorizontal: 16, borderRadius: Layout.radius.xxl, marginBottom: 24, gap: 8,
-  },
-  heroIcon: { fontSize: 48 },
-  heroTitle: { fontSize: Layout.fontSize['3xl'], fontFamily: 'Poppins_700Bold', color: Colors.white },
-  heroSubtitle: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_400Regular', color: 'rgba(255,255,255,0.8)', textAlign: 'center' },
-  featuresSection: { paddingHorizontal: 16, gap: 10, marginBottom: 28 },
-  featuresTitle: { fontSize: Layout.fontSize.lg, fontFamily: 'Poppins_700Bold', color: Colors.text.primary, marginBottom: 4 },
-  featureRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: Colors.dark.card, padding: 14, borderRadius: Layout.radius.lg,
-  },
-  featureIconBg: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  featureText: { flex: 1 },
-  featureLabel: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.text.primary },
-  featureDesc: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, marginTop: 2 },
-  plansSection: { paddingHorizontal: 16, marginBottom: 20 },
-  plansTitle: { fontSize: Layout.fontSize.lg, fontFamily: 'Poppins_700Bold', color: Colors.text.primary, marginBottom: 12 },
-  plansList: { gap: 10 },
-  planCard: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: Colors.dark.card, borderRadius: Layout.radius.xl, padding: 16,
-    borderWidth: 1, borderColor: Colors.dark.border, overflow: 'hidden',
-  },
-  planCardActive: { borderColor: Colors.primary },
-  planLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  planRadio: {
-    width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: Colors.dark.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  planRadioActive: { borderColor: Colors.primary },
-  planRadioInner: { width: 11, height: 11, borderRadius: 6, backgroundColor: Colors.primary },
-  planLabel: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_600SemiBold', color: Colors.text.primary },
-  planBadge: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginTop: 3, alignSelf: 'flex-start' },
-  planBadgeText: { fontSize: 9, fontFamily: 'Poppins_700Bold', color: Colors.white },
-  planRight: { alignItems: 'flex-end' },
-  planPrice: { fontSize: Layout.fontSize.lg, fontFamily: 'Poppins_700Bold', color: Colors.text.primary },
-  planPeriod: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted },
-  legalText: {
-    fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted,
-    textAlign: 'center', paddingHorizontal: 24, lineHeight: 18,
-  },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 10 },
+  restore: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_500Medium', color: Colors.text.secondary },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingBottom: 6 },
+  brand: { fontSize: Layout.fontSize['2xl'], fontFamily: 'Poppins_700Bold', color: Colors.text.primary },
+  proPill: { backgroundColor: Colors.primary, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
+  proPillText: { fontSize: 12, fontFamily: 'Poppins_700Bold', color: Colors.white, letterSpacing: 0.5 },
+
+  // Carousel
+  slide: { paddingHorizontal: 16 },
+  promo: { flex: 1, height: 300, borderRadius: Layout.radius.xxl, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 },
+  promoTitle: { fontSize: Layout.fontSize['2xl'], fontFamily: 'Poppins_700Bold', color: Colors.white, textAlign: 'center' },
+  promoSub: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_400Regular', color: 'rgba(255,255,255,0.9)', textAlign: 'center' },
+  compare: { flexDirection: 'row', height: 300, borderRadius: Layout.radius.xxl, overflow: 'hidden', gap: 2 },
+  compareCol: { flex: 1, padding: 18, gap: 8 },
+  compareTag: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_700Bold', color: Colors.text.primary },
+  compareSub: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, marginBottom: 8 },
+  compareRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  compareItem: { flex: 1, fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_500Medium', color: Colors.white },
+  compareItemDim: { flex: 1, fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_400Regular', color: Colors.text.secondary },
+
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 12, marginBottom: 18 },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.dark.border },
+  dotActive: { width: 20, backgroundColor: Colors.primary },
+
+  sectionTitle: { fontSize: Layout.fontSize.lg, fontFamily: 'Poppins_700Bold', color: Colors.text.primary, paddingHorizontal: 16, marginBottom: 10 },
+  chipsRow: { gap: 10, paddingHorizontal: 16, paddingBottom: 4 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.dark.card, borderRadius: Layout.radius.md, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 0.5, borderColor: Colors.dark.border },
+  chipText: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_600SemiBold', color: Colors.text.primary },
+
+  benefits: { paddingHorizontal: 16, gap: 10, marginTop: 20, marginBottom: 22 },
+  benefitRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  benefitText: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_500Medium', color: Colors.text.primary },
+
+  plans: { paddingHorizontal: 16, gap: 10 },
+  planCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.dark.card, borderRadius: Layout.radius.xl, padding: 16, borderWidth: 1, borderColor: Colors.dark.border },
+  planCardActive: { borderColor: Colors.primary, backgroundColor: '#0C1915' },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: Colors.dark.border, alignItems: 'center', justifyContent: 'center' },
+  radioActive: { borderColor: Colors.primary },
+  radioDot: { width: 11, height: 11, borderRadius: 6, backgroundColor: Colors.primary },
+  planTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  planLabel: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_700Bold', color: Colors.text.primary },
+  planBadge: { backgroundColor: Colors.premium, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  planBadgeBest: { backgroundColor: Colors.primary },
+  planBadgeText: { fontSize: 9, fontFamily: 'Poppins_700Bold', color: Colors.white, letterSpacing: 0.3 },
+  planSub: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, marginTop: 3 },
+  planPrice: { fontSize: Layout.fontSize.xl, fontFamily: 'Poppins_700Bold', color: Colors.text.primary },
+  planPer: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted },
+
+  trialNote: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, textAlign: 'center', paddingHorizontal: 24, lineHeight: 17, marginTop: 16 },
+  payRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10 },
+  payText: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: Colors.text.muted },
+
+  ctaBar: { padding: 16, paddingBottom: 24, backgroundColor: Colors.dark.surface, borderTopWidth: 0.5, borderTopColor: Colors.dark.border },
+  cta: { backgroundColor: Colors.primary, borderRadius: Layout.radius.xl, paddingVertical: 16, alignItems: 'center', gap: 2 },
+  ctaText: { fontSize: Layout.fontSize.lg, fontFamily: 'Poppins_700Bold', color: Colors.white },
+  ctaSub: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: 'rgba(255,255,255,0.85)' },
+  legal: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, textAlign: 'center', marginTop: 10, lineHeight: 16 },
   legalLink: { color: Colors.primary, fontFamily: 'Poppins_500Medium' },
-  restoreBtn: { alignItems: 'center', paddingVertical: 12, marginTop: 4 },
-  restoreText: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_500Medium', color: Colors.text.muted },
-  ctaBar: { padding: 16, paddingBottom: 28, backgroundColor: Colors.dark.surface, borderTopWidth: 0.5, borderTopColor: Colors.dark.border },
-  subscribeBtn: { borderRadius: Layout.radius.xl, overflow: 'hidden' },
-  subscribeBtnGrad: { paddingVertical: 16, alignItems: 'center', gap: 2 },
-  subscribeBtnText: { fontSize: Layout.fontSize.lg, fontFamily: 'Poppins_700Bold', color: Colors.white },
-  subscribeBtnPrice: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: 'rgba(255,255,255,0.75)' },
-  alreadyPremium: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
-  crownGrad: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center' },
-  crownIcon: { fontSize: 40 },
-  alreadyTitle: { fontSize: Layout.fontSize['2xl'], fontFamily: 'Poppins_700Bold', color: Colors.text.primary },
-  alreadyDesc: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_400Regular', color: Colors.text.secondary, textAlign: 'center' },
-  backToEditingBtn: { borderRadius: Layout.radius.xl, overflow: 'hidden', width: '100%', marginTop: 8 },
-  backToEditingGrad: { paddingVertical: 16, alignItems: 'center' },
-  backToEditingText: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_700Bold', color: Colors.white },
 });
