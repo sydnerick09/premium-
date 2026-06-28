@@ -81,6 +81,16 @@ export default function PremiumScreen() {
     startAuto(); // resume auto-play once the user's swipe settles
   };
 
+  // Jump to a slide (wraps around). Used by the ‹ › arrows and the dots.
+  const goTo = (i: number) => {
+    const next = (i + SLIDES.length) % SLIDES.length;
+    haptic.light();
+    stopAuto();
+    setSlide(next);
+    scrollRef.current?.scrollTo({ x: next * CARD_W, animated: true });
+    startAuto();
+  };
+
   const plan = PLANS.find((p) => p.id === selectedPlan)!;
 
   const handleSubscribe = async () => {
@@ -135,6 +145,7 @@ export default function PremiumScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 16 }}>
         {/* ── Hero carousel ─────────────────────────────────────────── */}
+        <View style={styles.heroWrap}>
         <ScrollView
           ref={scrollRef}
           horizontal
@@ -184,12 +195,21 @@ export default function PremiumScreen() {
           ))}
         </ScrollView>
 
+          {/* ‹ › arrows — one-tap navigation (works on phone & desktop) */}
+          <TouchableOpacity onPress={() => goTo(slide - 1)} style={[styles.arrow, styles.arrowLeft]}>
+            <Ionicons name="chevron-back" size={22} color={Colors.white} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => goTo(slide + 1)} style={[styles.arrow, styles.arrowRight]}>
+            <Ionicons name="chevron-forward" size={22} color={Colors.white} />
+          </TouchableOpacity>
+        </View>
+
         {/* Dots — tap to jump (works on desktop where drag-scroll doesn't) */}
         <View style={styles.dots}>
           {SLIDES.map((_, i) => (
             <TouchableOpacity
               key={i}
-              onPress={() => { haptic.light(); stopAuto(); setSlide(i); scrollRef.current?.scrollTo({ x: i * CARD_W, animated: true }); startAuto(); }}
+              onPress={() => goTo(i)}
               hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
             >
               <View style={[styles.dot, i === slide && styles.dotActive]} />
@@ -284,6 +304,13 @@ const styles = StyleSheet.create({
   proPillText: { fontSize: 12, fontFamily: 'Poppins_700Bold', color: Colors.white, letterSpacing: 0.5 },
 
   // Carousel
+  heroWrap: { position: 'relative', justifyContent: 'center' },
+  arrow: {
+    position: 'absolute', top: '50%', marginTop: -20, width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', zIndex: 5,
+  },
+  arrowLeft: { left: 24 },
+  arrowRight: { right: 24 },
   slide: { paddingHorizontal: 16 },
   promo: { flex: 1, height: 300, borderRadius: Layout.radius.xxl, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 },
   promoTitle: { fontSize: Layout.fontSize['2xl'], fontFamily: 'Poppins_700Bold', color: Colors.white, textAlign: 'center' },
