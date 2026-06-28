@@ -16,7 +16,7 @@ import { Layout } from '../constants/Layout';
 // snaps perfectly). The card is small enough that the whole screen fits with no
 // vertical scrolling.
 const SLIDE_W = Layout.window.width;
-const CARD_W = Math.round(Layout.window.width * 0.42);
+const CARD_W = Math.round(Layout.window.width * 0.40);
 const CARD_H = Math.round(CARD_W * 1.5);
 
 // ── Hero cards — ONE portrait image per card ─────────────────────────────────
@@ -31,11 +31,26 @@ const SLIDES: { img: any; title: string }[] = [
   { img: require('../assets/premium/creative.jpg'),     title: 'Creative Studio' },
 ];
 
+// Premium features teased to free users — "unlock 700+ with Pro".
+const FEATURES: { icon: string; label: string }[] = [
+  { icon: 'eye',          label: 'Eye Enhance' },
+  { icon: 'happy',        label: '500+ Stickers' },
+  { icon: 'albums',       label: '200+ Templates' },
+  { icon: 'color-filter', label: '100+ Filters' },
+  { icon: 'flash',        label: 'AI Enhance' },
+  { icon: 'cut',          label: 'Remove BG' },
+  { icon: 'sparkles',     label: 'Skin Retouch' },
+  { icon: 'grid',         label: 'Collage' },
+  { icon: 'text',         label: 'Fonts & Curve' },
+  { icon: 'download',     label: '4K Export' },
+  { icon: 'ban',          label: 'No Ads' },
+];
+
 interface Plan { id: string; label: string; price: string; per: string; sub: string; sticker?: string; badge?: string; best?: boolean; productId: string; }
 const PLANS: Plan[] = [
-  { id: 'yearly',  label: 'Yearly',   price: '$47', per: '/year',    sub: '7-day free trial, then $47/yr', sticker: 'SAVE 44%', badge: 'BEST VALUE', best: true, productId: 'gweno_premium_yearly' },
-  { id: 'quarter', label: '3 Months', price: '$15', per: '/3 months', sub: 'Just $5/mo, billed quarterly',  sticker: 'SAVE 29%', badge: 'POPULAR',    productId: 'gweno_premium_quarter' },
-  { id: 'monthly', label: 'Monthly',  price: '$7',  per: '/month',    sub: 'Billed every month',                                                       productId: 'gweno_premium_monthly' },
+  { id: 'yearly',  label: 'Yearly',   price: 'Ksh 3,000', per: '/year',     sub: '7-day free trial · about Ksh 58/wk', sticker: 'SAVE 88%', badge: 'BEST VALUE', best: true, productId: 'gweno_premium_yearly' },
+  { id: 'quarter', label: '3 Months', price: 'Ksh 1,600', per: '/3 months', sub: 'About Ksh 123/wk, billed quarterly', sticker: 'SAVE 75%', badge: 'POPULAR',    productId: 'gweno_premium_quarter' },
+  { id: 'weekly',  label: 'Weekly',   price: 'Ksh 500',   per: '/week',     sub: 'Billed every week',                                                              productId: 'gweno_premium_weekly' },
 ];
 
 export default function PremiumScreen() {
@@ -148,6 +163,18 @@ export default function PremiumScreen() {
         ))}
       </View>
 
+      {/* Pro features showcase */}
+      <Text style={styles.featHead}>Unlock 700+ Pro features</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featRow}>
+        {FEATURES.map((f) => (
+          <View key={f.label} style={styles.featChip}>
+            <Ionicons name={f.icon as any} size={18} color={Colors.primary} />
+            <Text style={styles.featChipText}>{f.label}</Text>
+            <Ionicons name="lock-closed" size={10} color={Colors.text.muted} />
+          </View>
+        ))}
+      </ScrollView>
+
       {/* Trust line */}
       <Text style={styles.trust}>No ads · All premium tools · Cancel anytime</Text>
 
@@ -217,6 +244,10 @@ const styles = StyleSheet.create({
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.dark.border },
   dotActive: { width: 18, backgroundColor: Colors.primary },
 
+  featHead: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_700Bold', color: Colors.text.primary, textAlign: 'center', marginBottom: 8 },
+  featRow: { gap: 8, paddingHorizontal: 16 },
+  featChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.dark.card, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 0.5, borderColor: Colors.dark.border },
+  featChipText: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_600SemiBold', color: Colors.text.primary },
   trust: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: Colors.text.muted, textAlign: 'center', marginVertical: 8 },
 
   // Plans — vertical stack that fills the space below the carousel
