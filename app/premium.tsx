@@ -16,7 +16,8 @@ import { Layout } from '../constants/Layout';
 // snaps perfectly). The card is small enough that the whole screen fits with no
 // vertical scrolling.
 const SLIDE_W = Layout.window.width;
-const CARD_W = Math.round(Layout.window.width * 0.46);
+const CARD_W = Math.round(Layout.window.width * 0.42);
+const CARD_H = Math.round(CARD_W * 1.5);
 
 // ── Hero cards — ONE portrait image per card ─────────────────────────────────
 // To change a picture, just replace the matching file in assets/premium/ with
@@ -30,13 +31,11 @@ const SLIDES: { img: any; title: string }[] = [
   { img: require('../assets/premium/creative.jpg'),     title: 'Creative Studio' },
 ];
 
-const BENEFITS = ['No ads — ever', 'Edit everything free', 'All premium tools', '7-day free trial'];
-
-interface Plan { id: string; label: string; price: string; per: string; badge?: string; best?: boolean; productId: string; }
+interface Plan { id: string; label: string; price: string; per: string; sub: string; sticker?: string; badge?: string; best?: boolean; productId: string; }
 const PLANS: Plan[] = [
-  { id: 'monthly', label: 'Monthly',  price: '$7',  per: '/mo',  productId: 'gweno_premium_monthly' },
-  { id: 'quarter', label: '3 Months', price: '$15', per: '/3mo', badge: 'SAVE',       productId: 'gweno_premium_quarter' },
-  { id: 'yearly',  label: 'Yearly',   price: '$47', per: '/yr',  badge: 'BEST', best: true, productId: 'gweno_premium_yearly' },
+  { id: 'yearly',  label: 'Yearly',   price: '$47', per: '/year',    sub: '7-day free trial, then $47/yr', sticker: 'SAVE 44%', badge: 'BEST VALUE', best: true, productId: 'gweno_premium_yearly' },
+  { id: 'quarter', label: '3 Months', price: '$15', per: '/3 months', sub: 'Just $5/mo, billed quarterly',  sticker: 'SAVE 29%', badge: 'POPULAR',    productId: 'gweno_premium_quarter' },
+  { id: 'monthly', label: 'Monthly',  price: '$7',  per: '/month',    sub: 'Billed every month',                                                       productId: 'gweno_premium_monthly' },
 ];
 
 export default function PremiumScreen() {
@@ -149,26 +148,28 @@ export default function PremiumScreen() {
         ))}
       </View>
 
-      {/* Benefits (compact 2-column) */}
-      <View style={styles.benefits}>
-        {BENEFITS.map((b) => (
-          <View key={b} style={styles.benefitItem}>
-            <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
-            <Text style={styles.benefitText}>{b}</Text>
-          </View>
-        ))}
-      </View>
+      {/* Trust line */}
+      <Text style={styles.trust}>No ads · All premium tools · Cancel anytime</Text>
 
-      {/* Plans (3 across) */}
+      {/* Plans — vertically stacked, with offer stickers (fills the space) */}
       <View style={styles.plans}>
         {PLANS.map((p) => {
           const active = selectedPlan === p.id;
           return (
-            <TouchableOpacity key={p.id} onPress={() => { haptic.light(); setSelectedPlan(p.id); }} style={[styles.planCard, active && styles.planCardActive]}>
+            <TouchableOpacity key={p.id} onPress={() => { haptic.light(); setSelectedPlan(p.id); }} style={[styles.planRow, active && styles.planRowActive]}>
               {p.badge && <View style={[styles.planBadge, p.best && styles.planBadgeBest]}><Text style={styles.planBadgeText}>{p.badge}</Text></View>}
-              <Text style={[styles.planLabel, active && { color: Colors.primary }]}>{p.label}</Text>
-              <Text style={[styles.planPrice, active && { color: Colors.primary }]}>{p.price}</Text>
-              <Text style={styles.planPer}>{p.per}</Text>
+              <View style={[styles.radio, active && styles.radioActive]}>{active && <View style={styles.radioDot} />}</View>
+              <View style={{ flex: 1 }}>
+                <View style={styles.planTop}>
+                  <Text style={[styles.planLabel, active && { color: Colors.primary }]}>{p.label}</Text>
+                  {p.sticker && <View style={styles.sticker}><Text style={styles.stickerText}>{p.sticker}</Text></View>}
+                </View>
+                <Text style={styles.planSub}>{p.sub}</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={[styles.planPrice, active && { color: Colors.primary }]}>{p.price}</Text>
+                <Text style={styles.planPer}>{p.per}</Text>
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -201,10 +202,10 @@ const styles = StyleSheet.create({
   proPillText: { fontSize: 11, fontFamily: 'Poppins_700Bold', color: Colors.white, letterSpacing: 0.5 },
   restore: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_500Medium', color: Colors.text.secondary },
 
-  // Carousel
-  heroWrap: { flex: 1, justifyContent: 'center', minHeight: 120 },
+  // Carousel — fixed to the card height so the plans below fill the rest
+  heroWrap: { height: CARD_H + 6, justifyContent: 'center' },
   slide: { width: SLIDE_W, alignItems: 'center', justifyContent: 'center' },
-  card: { width: CARD_W, aspectRatio: 2 / 3, borderRadius: Layout.radius.xl, overflow: 'hidden', backgroundColor: Colors.dark.card },
+  card: { width: CARD_W, height: CARD_H, borderRadius: Layout.radius.xl, overflow: 'hidden', backgroundColor: Colors.dark.card },
   cardImg: { width: '100%', height: '100%' },
   cardCaption: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', paddingVertical: 6, paddingHorizontal: 10 },
   cardCaptionText: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_600SemiBold', color: Colors.white, textAlign: 'center' },
@@ -216,19 +217,29 @@ const styles = StyleSheet.create({
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.dark.border },
   dotActive: { width: 18, backgroundColor: Colors.primary },
 
-  benefits: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', columnGap: 18, rowGap: 6, paddingHorizontal: 16, marginBottom: 12 },
-  benefitItem: { flexDirection: 'row', alignItems: 'center', gap: 6, width: '42%' },
-  benefitText: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_500Medium', color: Colors.text.primary },
+  trust: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: Colors.text.muted, textAlign: 'center', marginVertical: 8 },
 
-  plans: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 12 },
-  planCard: { flex: 1, backgroundColor: Colors.dark.card, borderRadius: Layout.radius.lg, paddingVertical: 12, alignItems: 'center', borderWidth: 1.5, borderColor: Colors.dark.border },
-  planCardActive: { borderColor: Colors.primary, backgroundColor: '#0C1915' },
-  planBadge: { position: 'absolute', top: -8, backgroundColor: Colors.premium, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 1 },
+  // Plans — vertical stack that fills the space below the carousel
+  plans: { flex: 1, justifyContent: 'center', gap: 10, paddingHorizontal: 16, paddingTop: 4 },
+  planRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: Colors.dark.card, borderRadius: Layout.radius.xl, paddingVertical: 14, paddingHorizontal: 14,
+    borderWidth: 1.5, borderColor: Colors.dark.border,
+  },
+  planRowActive: { borderColor: Colors.primary, backgroundColor: '#0C1915' },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: Colors.dark.border, alignItems: 'center', justifyContent: 'center' },
+  radioActive: { borderColor: Colors.primary },
+  radioDot: { width: 11, height: 11, borderRadius: 6, backgroundColor: Colors.primary },
+  planTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  planLabel: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_700Bold', color: Colors.text.primary },
+  planSub: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, marginTop: 2 },
+  planPrice: { fontSize: Layout.fontSize.xl, fontFamily: 'Poppins_700Bold', color: Colors.text.primary },
+  planPer: { fontSize: 10, fontFamily: 'Poppins_400Regular', color: Colors.text.muted },
+  sticker: { backgroundColor: '#1E3A2E', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  stickerText: { fontSize: 9, fontFamily: 'Poppins_700Bold', color: Colors.primaryLight, letterSpacing: 0.3 },
+  planBadge: { position: 'absolute', top: -8, right: 14, backgroundColor: Colors.premium, borderRadius: 4, paddingHorizontal: 7, paddingVertical: 2 },
   planBadgeBest: { backgroundColor: Colors.primary },
   planBadgeText: { fontSize: 8, fontFamily: 'Poppins_700Bold', color: Colors.white, letterSpacing: 0.3 },
-  planLabel: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_600SemiBold', color: Colors.text.secondary, marginTop: 2 },
-  planPrice: { fontSize: Layout.fontSize.xl, fontFamily: 'Poppins_700Bold', color: Colors.text.primary, marginTop: 2 },
-  planPer: { fontSize: 10, fontFamily: 'Poppins_400Regular', color: Colors.text.muted },
 
   cta: { backgroundColor: Colors.primary, borderRadius: Layout.radius.xl, paddingVertical: 14, alignItems: 'center', gap: 2, marginHorizontal: 16 },
   ctaText: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_700Bold', color: Colors.white },
