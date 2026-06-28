@@ -142,13 +142,28 @@ export default function PremiumScreen() {
           {SLIDES.map((s, i) => (
             <View key={i} style={[styles.slide, { width: CARD_W }]}>
               {s.kind === 'compare' ? (
-                // Real before/after photo with BASIC / PREMIUM labels overlaid.
+                // Real before/after photo cropped to the face, with fresh labels +
+                // checklists drawn over scrim bands that blend into the card.
                 <View style={styles.compare}>
                   <Image source={BEFORE_AFTER} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
                   <View style={styles.splitLine} />
-                  <View style={styles.photoTags}>
+
+                  {/* Top scrim + labels */}
+                  <View style={styles.compareTopBar}>
                     <View style={styles.photoTagDark}><Text style={styles.photoTagText}>BASIC EDIT</Text></View>
                     <View style={styles.photoTagPro}><Text style={styles.photoTagText}>PREMIUM EDIT</Text></View>
+                  </View>
+
+                  {/* Bottom scrim + short checklists */}
+                  <View style={styles.compareBottomBar}>
+                    <View style={styles.cbCol}>
+                      <Text style={styles.cbText}>✓ Basic colour balance</Text>
+                      <Text style={styles.cbText}>✓ Natural look</Text>
+                    </View>
+                    <View style={[styles.cbCol, { alignItems: 'flex-end' }]}>
+                      <Text style={styles.cbTextPro}>✓ Pro retouching</Text>
+                      <Text style={styles.cbTextPro}>✓ Sharper details</Text>
+                    </View>
                   </View>
                 </View>
               ) : (
@@ -262,7 +277,11 @@ const styles = StyleSheet.create({
   promoSub: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_400Regular', color: 'rgba(255,255,255,0.9)', textAlign: 'center' },
   compare: { flexDirection: 'row', height: 300, borderRadius: Layout.radius.xxl, overflow: 'hidden', gap: 2 },
   splitLine: { position: 'absolute', top: 0, bottom: 0, left: '50%', width: 2, backgroundColor: 'rgba(255,255,255,0.85)' },
-  photoTags: { position: 'absolute', top: 14, left: 14, right: 14, flexDirection: 'row', justifyContent: 'space-between' },
+  compareTopBar: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingTop: 12, paddingBottom: 16, backgroundColor: 'rgba(0,0,0,0.45)' },
+  compareBottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 16, paddingBottom: 14, backgroundColor: 'rgba(0,0,0,0.5)' },
+  cbCol: { flex: 1, gap: 4 },
+  cbText: { fontSize: 11, fontFamily: 'Poppins_500Medium', color: 'rgba(255,255,255,0.92)' },
+  cbTextPro: { fontSize: 11, fontFamily: 'Poppins_600SemiBold', color: Colors.premiumLight },
   photoTagDark: { backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
   photoTagPro: { backgroundColor: Colors.premium, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
   photoTagText: { fontSize: 11, fontFamily: 'Poppins_700Bold', color: Colors.white },
