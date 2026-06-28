@@ -197,12 +197,12 @@ export default function PremiumScreen() {
         ))}
       </View>
 
-      {/* Pro features showcase — animated icons */}
-      <Text style={styles.featHead}>Unlock 700+ Pro features</Text>
-      <FeatureMarquee />
-
-      {/* Trust line */}
-      <Text style={styles.trust}>No ads · All premium tools · Cancel anytime</Text>
+      {/* Pro features showcase — centered in the space between image and plans */}
+      <View style={styles.midSection}>
+        <Text style={styles.featHead}>Unlock 700+ Pro features</Text>
+        <FeatureMarquee />
+        <Text style={styles.trust}>No ads · All premium tools · Cancel anytime</Text>
+      </View>
 
       {/* Plans — vertically stacked, with offer stickers (fills the space) */}
       <View style={styles.plans}>
@@ -273,16 +273,18 @@ const styles = StyleSheet.create({
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.dark.border },
   dotActive: { width: 18, backgroundColor: Colors.primary },
 
-  featHead: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_700Bold', color: Colors.text.primary, textAlign: 'center', marginBottom: 8 },
-  marqueeWrap: { height: 64, overflow: 'hidden', justifyContent: 'center' },
+  // Middle section fills the gap between the image and the plans, centered.
+  midSection: { flex: 1, justifyContent: 'center', gap: 14 },
+  featHead: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_700Bold', color: Colors.text.primary, textAlign: 'center' },
+  marqueeWrap: { height: 84, overflow: 'hidden', justifyContent: 'center' },
   marqueeRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  featItem: { width: 76, alignItems: 'center', gap: 5 },
+  featItem: { width: 78, alignItems: 'center', gap: 6 },
   featTile: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   featLabel: { fontSize: 10, fontFamily: 'Poppins_500Medium', color: Colors.text.secondary, textAlign: 'center' },
-  trust: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: Colors.text.muted, textAlign: 'center', marginVertical: 6 },
+  trust: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: Colors.text.muted, textAlign: 'center' },
 
   // Plans — vertical stack that fills the space below the carousel
-  plans: { flex: 1, justifyContent: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 4 },
+  plans: { gap: 8, paddingHorizontal: 16 },
   planRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     backgroundColor: Colors.dark.card, borderRadius: Layout.radius.lg, paddingVertical: 11, paddingHorizontal: 14,
