@@ -160,29 +160,9 @@ export default function PremiumScreen() {
           {SLIDES.map((s, i) => (
             <View key={i} style={[styles.slide, { width: CARD_W }]}>
               {s.kind === 'compare' ? (
-                // Real before/after photo cropped to the face, with fresh labels +
-                // checklists drawn over scrim bands that blend into the card.
+                // Full before/after photo (portrait 2:3) — fits the card exactly.
                 <View style={styles.compare}>
-                  <Image source={BEFORE_AFTER} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
-                  <View style={styles.splitLine} />
-
-                  {/* Top scrim + labels */}
-                  <View style={styles.compareTopBar}>
-                    <View style={styles.photoTagDark}><Text style={styles.photoTagText}>BASIC EDIT</Text></View>
-                    <View style={styles.photoTagPro}><Text style={styles.photoTagText}>PREMIUM EDIT</Text></View>
-                  </View>
-
-                  {/* Bottom scrim + short checklists */}
-                  <View style={styles.compareBottomBar}>
-                    <View style={styles.cbCol}>
-                      <Text style={styles.cbText}>✓ Basic colour balance</Text>
-                      <Text style={styles.cbText}>✓ Natural look</Text>
-                    </View>
-                    <View style={[styles.cbCol, { alignItems: 'flex-end' }]}>
-                      <Text style={styles.cbTextPro}>✓ Pro retouching</Text>
-                      <Text style={styles.cbTextPro}>✓ Sharper details</Text>
-                    </View>
-                  </View>
+                  <Image source={BEFORE_AFTER} style={styles.compareImg} resizeMode="cover" />
                 </View>
               ) : (
                 <View style={[styles.promo, { backgroundColor: s.bg }]}>
@@ -312,10 +292,11 @@ const styles = StyleSheet.create({
   arrowLeft: { left: 24 },
   arrowRight: { right: 24 },
   slide: { paddingHorizontal: 16 },
-  promo: { flex: 1, height: 300, borderRadius: Layout.radius.xxl, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 },
+  promo: { width: '100%', aspectRatio: 2 / 3, borderRadius: Layout.radius.xxl, alignItems: 'center', justifyContent: 'center', padding: 24, gap: 10 },
   promoTitle: { fontSize: Layout.fontSize['2xl'], fontFamily: 'Poppins_700Bold', color: Colors.white, textAlign: 'center' },
   promoSub: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_400Regular', color: 'rgba(255,255,255,0.9)', textAlign: 'center' },
-  compare: { flexDirection: 'row', height: 300, borderRadius: Layout.radius.xxl, overflow: 'hidden', gap: 2 },
+  compare: { width: '100%', aspectRatio: 2 / 3, borderRadius: Layout.radius.xxl, overflow: 'hidden', backgroundColor: Colors.dark.card },
+  compareImg: { width: '100%', height: '100%' },
   splitLine: { position: 'absolute', top: 0, bottom: 0, left: '50%', width: 2, backgroundColor: 'rgba(255,255,255,0.85)' },
   compareTopBar: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingTop: 12, paddingBottom: 16, backgroundColor: 'rgba(0,0,0,0.45)' },
   compareBottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 16, paddingBottom: 14, backgroundColor: 'rgba(0,0,0,0.5)' },
