@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Image,
   NativeSyntheticEvent, NativeScrollEvent,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -14,6 +14,9 @@ import { Layout } from '../constants/Layout';
 
 const CARD_W = Layout.window.width - 32;
 
+// Your real BASIC-vs-PREMIUM before/after photo (bundled asset).
+const BEFORE_AFTER = require('../assets/premium/before-after.jpg');
+
 // ── Auto-animated hero slides (designed — no external photos needed) ──────────
 type Slide =
   | { kind: 'compare' }
@@ -26,9 +29,6 @@ const SLIDES: Slide[] = [
   { kind: 'promo', bg: '#F97316', icon: 'basketball',   title: 'Sharp Action Shots', sub: 'Football, basketball — freeze the moment.' },
   { kind: 'promo', bg: '#EC4899', icon: 'sparkles',     title: 'Creative Studio',  sub: '200+ templates, 500+ stickers & collage.' },
 ];
-
-const BASIC = ['Basic colour balance', 'Minor blemish reduction', 'Natural look'];
-const PREMIUM_LIST = ['Advanced skin retouching', 'Enhanced colours & contrast', 'Sharper details', 'Professional finish'];
 
 const CHIPS = [
   { icon: 'albums',   label: '200+ Templates' },
@@ -142,26 +142,13 @@ export default function PremiumScreen() {
           {SLIDES.map((s, i) => (
             <View key={i} style={[styles.slide, { width: CARD_W }]}>
               {s.kind === 'compare' ? (
+                // Real before/after photo with BASIC / PREMIUM labels overlaid.
                 <View style={styles.compare}>
-                  <View style={[styles.compareCol, { backgroundColor: '#23232B' }]}>
-                    <Text style={styles.compareTag}>BASIC EDIT</Text>
-                    <Text style={styles.compareSub}>Fast & Simple</Text>
-                    {BASIC.map((b) => (
-                      <View key={b} style={styles.compareRow}>
-                        <Ionicons name="checkmark" size={13} color={Colors.text.muted} />
-                        <Text style={styles.compareItemDim}>{b}</Text>
-                      </View>
-                    ))}
-                  </View>
-                  <View style={[styles.compareCol, { backgroundColor: '#0E9F6E' }]}>
-                    <Text style={[styles.compareTag, { color: Colors.white }]}>PREMIUM EDIT</Text>
-                    <Text style={[styles.compareSub, { color: 'rgba(255,255,255,0.9)' }]}>Professional & Polished</Text>
-                    {PREMIUM_LIST.map((b) => (
-                      <View key={b} style={styles.compareRow}>
-                        <Ionicons name="checkmark" size={13} color={Colors.white} />
-                        <Text style={styles.compareItem}>{b}</Text>
-                      </View>
-                    ))}
+                  <Image source={BEFORE_AFTER} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+                  <View style={styles.splitLine} />
+                  <View style={styles.photoTags}>
+                    <View style={styles.photoTagDark}><Text style={styles.photoTagText}>BASIC EDIT</Text></View>
+                    <View style={styles.photoTagPro}><Text style={styles.photoTagText}>PREMIUM EDIT</Text></View>
                   </View>
                 </View>
               ) : (
@@ -274,6 +261,11 @@ const styles = StyleSheet.create({
   promoTitle: { fontSize: Layout.fontSize['2xl'], fontFamily: 'Poppins_700Bold', color: Colors.white, textAlign: 'center' },
   promoSub: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_400Regular', color: 'rgba(255,255,255,0.9)', textAlign: 'center' },
   compare: { flexDirection: 'row', height: 300, borderRadius: Layout.radius.xxl, overflow: 'hidden', gap: 2 },
+  splitLine: { position: 'absolute', top: 0, bottom: 0, left: '50%', width: 2, backgroundColor: 'rgba(255,255,255,0.85)' },
+  photoTags: { position: 'absolute', top: 14, left: 14, right: 14, flexDirection: 'row', justifyContent: 'space-between' },
+  photoTagDark: { backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+  photoTagPro: { backgroundColor: Colors.premium, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5 },
+  photoTagText: { fontSize: 11, fontFamily: 'Poppins_700Bold', color: Colors.white },
   compareCol: { flex: 1, padding: 18, gap: 8 },
   compareTag: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_700Bold', color: Colors.text.primary },
   compareSub: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, marginBottom: 8 },
