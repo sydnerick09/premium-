@@ -16,7 +16,7 @@ import { Layout } from '../constants/Layout';
 // snaps perfectly). The card is small enough that the whole screen fits with no
 // vertical scrolling.
 const SLIDE_W = Layout.window.width;
-const CARD_W = Math.round(Layout.window.width * 0.40);
+const CARD_W = Math.round(Layout.window.width * 0.36);
 const CARD_H = Math.round(CARD_W * 1.5);
 
 // ── Hero cards — ONE portrait image per card ─────────────────────────────────
@@ -48,9 +48,9 @@ const FEATURES: { icon: string; label: string; color: string }[] = [
 
 interface Plan { id: string; label: string; price: string; per: string; sub: string; sticker?: string; badge?: string; best?: boolean; productId: string; }
 const PLANS: Plan[] = [
-  { id: 'yearly',  label: 'Yearly',   price: 'Ksh 3,000', per: '/year',     sub: '7-day free trial · about Ksh 58/wk', sticker: 'SAVE 88%', badge: 'BEST VALUE', best: true, productId: 'gweno_premium_yearly' },
-  { id: 'quarter', label: '3 Months', price: 'Ksh 1,600', per: '/3 months', sub: 'About Ksh 123/wk, billed quarterly', sticker: 'SAVE 75%', badge: 'POPULAR',    productId: 'gweno_premium_quarter' },
   { id: 'weekly',  label: 'Weekly',   price: 'Ksh 500',   per: '/week',     sub: 'Billed every week',                                                              productId: 'gweno_premium_weekly' },
+  { id: 'quarter', label: '3 Months', price: 'Ksh 1,600', per: '/3 months', sub: 'About Ksh 123/wk, billed quarterly', sticker: 'SAVE 75%', badge: 'POPULAR',    productId: 'gweno_premium_quarter' },
+  { id: 'yearly',  label: 'Yearly',   price: 'Ksh 3,000', per: '/year',     sub: '7-day free trial · about Ksh 58/wk', sticker: 'SAVE 88%', badge: 'BEST VALUE', best: true, productId: 'gweno_premium_yearly' },
 ];
 
 export default function PremiumScreen() {
@@ -217,8 +217,9 @@ export default function PremiumScreen() {
         )}
       </TouchableOpacity>
       <Text style={styles.legal}>
-        Cancel anytime ·{' '}
-        <Text style={styles.legalLink} onPress={() => router.push('/terms')}>Terms</Text> &{' '}
+        7-day free trial, then {plan.price}{plan.per}. Auto-renews until cancelled.{'\n'}
+        <Text style={styles.legalLink} onPress={() => router.push('/terms')}>Terms</Text>
+        {'   ·   '}
         <Text style={styles.legalLink} onPress={() => router.push('/privacy-policy')}>Privacy</Text>
       </Text>
     </SafeAreaView>
@@ -249,18 +250,18 @@ const styles = StyleSheet.create({
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.dark.border },
   dotActive: { width: 18, backgroundColor: Colors.primary },
 
-  featHead: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_700Bold', color: Colors.text.primary, textAlign: 'center', marginBottom: 8 },
-  featRow: { gap: 10, paddingHorizontal: 16 },
-  featChip: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.dark.card, borderRadius: Layout.radius.lg, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 0.5, borderColor: Colors.dark.border },
-  featTile: { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  featChipText: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_600SemiBold', color: Colors.text.primary },
-  trust: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: Colors.text.muted, textAlign: 'center', marginVertical: 8 },
+  featHead: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_700Bold', color: Colors.text.primary, textAlign: 'center', marginBottom: 6 },
+  featRow: { gap: 8, paddingHorizontal: 16 },
+  featChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.dark.card, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 5, borderWidth: 0.5, borderColor: Colors.dark.border },
+  featTile: { width: 24, height: 24, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
+  featChipText: { fontSize: 11, fontFamily: 'Poppins_600SemiBold', color: Colors.text.primary, paddingRight: 2 },
+  trust: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: Colors.text.muted, textAlign: 'center', marginVertical: 6 },
 
   // Plans — vertical stack that fills the space below the carousel
-  plans: { flex: 1, justifyContent: 'center', gap: 10, paddingHorizontal: 16, paddingTop: 4 },
+  plans: { flex: 1, justifyContent: 'center', gap: 8, paddingHorizontal: 16, paddingTop: 4 },
   planRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: Colors.dark.card, borderRadius: Layout.radius.xl, paddingVertical: 14, paddingHorizontal: 14,
+    backgroundColor: Colors.dark.card, borderRadius: Layout.radius.lg, paddingVertical: 11, paddingHorizontal: 14,
     borderWidth: 1.5, borderColor: Colors.dark.border,
   },
   planRowActive: {
@@ -282,7 +283,7 @@ const styles = StyleSheet.create({
   planBadgeText: { fontSize: 8, fontFamily: 'Poppins_700Bold', color: Colors.white, letterSpacing: 0.3 },
 
   cta: {
-    backgroundColor: Colors.primary, borderRadius: Layout.radius.xl, paddingVertical: 15, alignItems: 'center', gap: 2, marginHorizontal: 16,
+    backgroundColor: Colors.primary, borderRadius: Layout.radius.xl, paddingVertical: 15, alignItems: 'center', gap: 2, marginHorizontal: 16, marginTop: 14,
     shadowColor: Colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 16, elevation: 8,
   },
   ctaBadge: {
@@ -292,6 +293,6 @@ const styles = StyleSheet.create({
   ctaBadgeText: { fontSize: 10, fontFamily: 'Poppins_700Bold', color: Colors.dark.background },
   ctaText: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_700Bold', color: Colors.white },
   ctaSub: { fontSize: 10, fontFamily: 'Poppins_400Regular', color: 'rgba(255,255,255,0.85)' },
-  legal: { fontSize: 10, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, textAlign: 'center', marginTop: 8 },
-  legalLink: { color: Colors.primary, fontFamily: 'Poppins_500Medium' },
+  legal: { fontSize: 11, fontFamily: 'Poppins_400Regular', color: Colors.text.secondary, textAlign: 'center', marginTop: 8, marginBottom: 4, lineHeight: 16, paddingHorizontal: 16 },
+  legalLink: { color: Colors.primary, fontFamily: 'Poppins_600SemiBold', textDecorationLine: 'underline' },
 });
