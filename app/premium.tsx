@@ -32,18 +32,18 @@ const SLIDES: { img: any; title: string }[] = [
 ];
 
 // Premium features teased to free users — "unlock 700+ with Pro".
-const FEATURES: { icon: string; label: string }[] = [
-  { icon: 'eye',          label: 'Eye Enhance' },
-  { icon: 'happy',        label: '500+ Stickers' },
-  { icon: 'albums',       label: '200+ Templates' },
-  { icon: 'color-filter', label: '100+ Filters' },
-  { icon: 'flash',        label: 'AI Enhance' },
-  { icon: 'cut',          label: 'Remove BG' },
-  { icon: 'sparkles',     label: 'Skin Retouch' },
-  { icon: 'grid',         label: 'Collage' },
-  { icon: 'text',         label: 'Fonts & Curve' },
-  { icon: 'download',     label: '4K Export' },
-  { icon: 'ban',          label: 'No Ads' },
+const FEATURES: { icon: string; label: string; color: string }[] = [
+  { icon: 'eye',          label: 'Eye Enhance',   color: '#3B82F6' },
+  { icon: 'happy',        label: '500+ Stickers', color: '#EC4899' },
+  { icon: 'albums',       label: '200+ Templates', color: '#F59E0B' },
+  { icon: 'color-filter', label: '100+ Filters',  color: '#7C3AED' },
+  { icon: 'flash',        label: 'AI Enhance',    color: '#06B6D4' },
+  { icon: 'cut',          label: 'Remove BG',     color: '#EF4444' },
+  { icon: 'sparkles',     label: 'Skin Retouch',  color: '#10B981' },
+  { icon: 'grid',         label: 'Collage',       color: '#0EA5E9' },
+  { icon: 'text',         label: 'Fonts & Curve', color: '#8B5CF6' },
+  { icon: 'download',     label: '4K Export',     color: '#22C55E' },
+  { icon: 'ban',          label: 'No Ads',        color: '#F97316' },
 ];
 
 interface Plan { id: string; label: string; price: string; per: string; sub: string; sticker?: string; badge?: string; best?: boolean; productId: string; }
@@ -168,9 +168,10 @@ export default function PremiumScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featRow}>
         {FEATURES.map((f) => (
           <View key={f.label} style={styles.featChip}>
-            <Ionicons name={f.icon as any} size={18} color={Colors.primary} />
+            <View style={[styles.featTile, { backgroundColor: f.color }]}>
+              <Ionicons name={f.icon as any} size={16} color={Colors.white} />
+            </View>
             <Text style={styles.featChipText}>{f.label}</Text>
-            <Ionicons name="lock-closed" size={10} color={Colors.text.muted} />
           </View>
         ))}
       </ScrollView>
@@ -206,6 +207,10 @@ export default function PremiumScreen() {
       <TouchableOpacity onPress={handleSubscribe} disabled={isPurchasing} style={styles.cta}>
         {isPurchasing ? <ActivityIndicator color={Colors.white} /> : (
           <>
+            <View style={styles.ctaBadge}>
+              <Ionicons name="thumbs-up" size={11} color={Colors.dark.background} />
+              <Text style={styles.ctaBadgeText}>95%</Text>
+            </View>
             <Text style={styles.ctaText}>Start 7-Day Free Trial</Text>
             <Text style={styles.ctaSub}>Then {plan.price}{plan.per} · Visa · Mastercard · Debit only</Text>
           </>
@@ -245,8 +250,9 @@ const styles = StyleSheet.create({
   dotActive: { width: 18, backgroundColor: Colors.primary },
 
   featHead: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_700Bold', color: Colors.text.primary, textAlign: 'center', marginBottom: 8 },
-  featRow: { gap: 8, paddingHorizontal: 16 },
-  featChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.dark.card, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, borderWidth: 0.5, borderColor: Colors.dark.border },
+  featRow: { gap: 10, paddingHorizontal: 16 },
+  featChip: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.dark.card, borderRadius: Layout.radius.lg, paddingHorizontal: 10, paddingVertical: 8, borderWidth: 0.5, borderColor: Colors.dark.border },
+  featTile: { width: 30, height: 30, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   featChipText: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_600SemiBold', color: Colors.text.primary },
   trust: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: Colors.text.muted, textAlign: 'center', marginVertical: 8 },
 
@@ -257,7 +263,10 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.card, borderRadius: Layout.radius.xl, paddingVertical: 14, paddingHorizontal: 14,
     borderWidth: 1.5, borderColor: Colors.dark.border,
   },
-  planRowActive: { borderColor: Colors.primary, backgroundColor: '#0C1915' },
+  planRowActive: {
+    borderColor: Colors.primary, backgroundColor: '#0C1915',
+    shadowColor: Colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 12, elevation: 6,
+  },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: Colors.dark.border, alignItems: 'center', justifyContent: 'center' },
   radioActive: { borderColor: Colors.primary },
   radioDot: { width: 11, height: 11, borderRadius: 6, backgroundColor: Colors.primary },
@@ -272,7 +281,15 @@ const styles = StyleSheet.create({
   planBadgeBest: { backgroundColor: Colors.primary },
   planBadgeText: { fontSize: 8, fontFamily: 'Poppins_700Bold', color: Colors.white, letterSpacing: 0.3 },
 
-  cta: { backgroundColor: Colors.primary, borderRadius: Layout.radius.xl, paddingVertical: 14, alignItems: 'center', gap: 2, marginHorizontal: 16 },
+  cta: {
+    backgroundColor: Colors.primary, borderRadius: Layout.radius.xl, paddingVertical: 15, alignItems: 'center', gap: 2, marginHorizontal: 16,
+    shadowColor: Colors.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 16, elevation: 8,
+  },
+  ctaBadge: {
+    position: 'absolute', top: -10, right: 14, flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: Colors.premiumLight, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3,
+  },
+  ctaBadgeText: { fontSize: 10, fontFamily: 'Poppins_700Bold', color: Colors.dark.background },
   ctaText: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_700Bold', color: Colors.white },
   ctaSub: { fontSize: 10, fontFamily: 'Poppins_400Regular', color: 'rgba(255,255,255,0.85)' },
   legal: { fontSize: 10, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, textAlign: 'center', marginTop: 8 },
