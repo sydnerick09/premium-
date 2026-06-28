@@ -16,6 +16,7 @@ import { imageProcessor } from '../../services/image/imageProcessor.service';
 import { aiEnhancement } from '../../services/image/aiEnhancement.service';
 import EditorImage from '../../components/EditorImage';
 import AppSlider from '../../components/AppSlider';
+import { TextEditToolbar } from '../../components/editor/TextEditToolbar';
 import { FilterCatalog } from '../../constants/FilterCatalog';
 import { haptic } from '../../utils/haptics';
 import { Colors } from '../../constants/Colors';
@@ -65,7 +66,7 @@ const TOOLS = [
 //       submenu → open a nested sheet | pro → Pro (coming soon) | soon → coming soon
 type SubKind =
   | 'route' | 'tab' | 'crop' | 'blur' | 'fit' | 'enhance' | 'makeup' | 'beautyfx'
-  | 'files' | 'camera' | 'restore' | 'submenu' | 'pro' | 'soon';
+  | 'files' | 'camera' | 'restore' | 'submenu' | 'pro' | 'soon' | 'addText';
 type SubItem = { id: string; label: string; icon?: string; kind: SubKind; target?: string; sub?: string };
 
 const SUBMENUS: Record<string, { title: string; items: SubItem[] }> = {
@@ -91,8 +92,9 @@ const SUBMENUS: Record<string, { title: string; items: SubItem[] }> = {
     { id: 'bg',       label: 'Background',     icon: 'cut-outline',     kind: 'route', target: '/editor/bg-remove' },
   ]},
   text: { title: 'Text', items: [
-    { id: 'font',   label: 'Add Text',     icon: 'text-outline',      kind: 'route', target: '/editor/creative' },
-    { id: 'bubble', label: 'Text Bubbles', icon: 'chatbubble-outline', kind: 'route', target: '/editor/creative' },
+    { id: 'font',   label: 'Add Text',     icon: 'text-outline',       kind: 'addText' },
+    { id: 'bubble', label: 'Text Bubbles', icon: 'chatbubble-outline', kind: 'addText', target: 'bubble' },
+    { id: 'more',   label: 'More Fonts',   icon: 'color-wand-outline', kind: 'route', target: '/editor/creative' },
   ]},
   blur: { title: 'Blur', items: [
     { id: 'circle', label: 'Circle', icon: 'ellipse-outline',         kind: 'blur' },
@@ -170,13 +172,15 @@ const CROP_RATIOS: { label: string; ratio: number | null }[] = [
 
 // ── Draggable text overlay rendered on the canvas ───────────────────────────
 function DraggableText({
-  overlay, canvasW, canvasH, onMove, onRemove,
+  overlay, canvasW, canvasH, selected, onMove, onRemove, onSelect,
 }: {
   overlay: TextOverlay;
   canvasW: number;
   canvasH: number;
+  selected: boolean;
   onMove: (id: string, x: number, y: number) => void;
   onRemove: (id: string) => void;
+  onSelect: (id: string) => void;
 }) {
   const pan = useRef(new Animated.ValueXY({
     x: overlay.x * canvasW,
@@ -226,13 +230,14 @@ function DraggableText({
         { transform: [{ translateX: pan.x }, { translateY: pan.y }] },
       ]}
     >
-      <TouchableOpacity onLongPress={() => onRemove(overlay.id)} activeOpacity={0.9}>
-        <View style={[hasBubble && bubbleStyle]}>
+      <TouchableOpacity onPress={() => onSelect(overlay.id)} onLongPress={() => onRemove(overlay.id)} activeOpacity={0.9}>
+        <View style={[hasBubble && bubbleStyle, selected && styles.textSelected]}>
           <Text
             style={{
               color: overlay.color,
               fontSize: overlay.fontSize,
               textAlign: overlay.align,
+              fontFamily: overlay.fontFamily,
               fontWeight: overlay.bold ? 'bold' : 'normal',
               fontStyle: overlay.italic ? 'italic' : 'normal',
               textShadowColor: hasBubble ? 'transparent' : 'rgba(0,0,0,0.5)',
@@ -240,8 +245,13 @@ function DraggableText({
               textShadowRadius: 3,
             }}
           >
-            {overlay.content}
+            {overlay.content || ' '}
           </Text>
+          {selected && (
+            <TouchableOpacity onPress={() => onRemove(overlay.id)} style={styles.textDeleteBadge} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close" size={14} color={Colors.white} />
+            </TouchableOpacity>
+          )}
           {/* Speech tail */}
           {bubble === 'speech' && (
             <View style={[styles.bubbleTail, { backgroundColor: bubbleColor }]} pointerEvents="none" />
@@ -287,6 +297,8 @@ export default function EditorScreen() {
   const [isGenerating, setIsGenerating]   = useState(false);
   const [canvasSize, setCanvasSize]       = useState({ width: SCREEN_W, height: SCREEN_H });
   const [imgNatural, setImgNatural]       = useState({ width: 0, height: 0 });
+  // Currently-selected text overlay (shows the on-canvas text toolbar).
+  const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const didNavigateTool = useRef(false);
 
   const project      = useProjectStore((s) => s.getProject(id ?? ''));
@@ -297,6 +309,7 @@ export default function EditorScreen() {
     setCurrentUri, setAdjustments, canUndo, canRedo, undo, redo,
     isProcessing, processingLabel, setProcessing, pushHistory, setActiveTool,
     textOverlays, updateTextOverlayPosition, removeTextOverlay,
+    addTextOverlay, updateTextOverlay,
     activeFilterId, filterIntensity, beautyValues,
   } = useEditorStore();
 
@@ -612,9 +625,28 @@ export default function EditorScreen() {
       case 'submenu': haptic.selection(); if (item.sub) setSubTool(item.sub); break;
       case 'pro':     haptic.light(); showToast(`${item.label} — Pro (coming soon)`); break;
       case 'soon':    haptic.light(); showToast(`${item.label} — coming soon`); break;
+      case 'addText': {
+        setSubTool(null);
+        haptic.light();
+        const newId = addTextOverlay({
+          content: 'Text',
+          color: '#FFFFFF',
+          fontSize: 36,
+          align: 'center',
+          bold: false,
+          italic: false,
+          fontFamily: 'Poppins_600SemiBold',
+          x: 0.3,
+          y: 0.4,
+          bubble: item.target === 'bubble' ? 'box' : 'none',
+          bubbleColor: '#000000',
+        });
+        setSelectedTextId(newId);
+        break;
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [importPhoto, restoreOriginal, showToast, currentUri]);
+  }, [importPhoto, restoreOriginal, showToast, currentUri, addTextOverlay]);
 
   // ── Blur Background (DSLR/portrait) — opens a strength modal ──────────────────
   const handleBlurBackground = useCallback(() => {
@@ -1072,15 +1104,17 @@ export default function EditorScreen() {
           </View>
         )}
 
-        {/* Text overlays — draggable, long-press to remove */}
+        {/* Text overlays — tap to edit, drag to move, long-press to remove */}
         {!isCropping && textOverlays.map((overlay) => (
           <DraggableText
             key={overlay.id}
             overlay={overlay}
             canvasW={canvasSize.width}
             canvasH={canvasSize.height}
+            selected={selectedTextId === overlay.id}
             onMove={updateTextOverlayPosition}
-            onRemove={(id) => { haptic.medium(); removeTextOverlay(id); }}
+            onRemove={(id) => { haptic.medium(); removeTextOverlay(id); if (selectedTextId === id) setSelectedTextId(null); }}
+            onSelect={(id) => { haptic.selection(); setSelectedTextId(id); }}
           />
         ))}
 
@@ -1359,8 +1393,22 @@ export default function EditorScreen() {
         </View>
       )}
 
-      {/* Bottom panel — hidden during crop / sheets */}
-      {!isCropping && !showAiFamily && !showLogo && !showBlur && !subTool && (
+      {/* On-canvas text editor toolbar (shown when a text layer is selected) */}
+      {(() => {
+        const sel = textOverlays.find((o) => o.id === selectedTextId);
+        if (!sel || isCropping) return null;
+        return (
+          <TextEditToolbar
+            overlay={sel}
+            onChange={(patch) => updateTextOverlay(sel.id, patch)}
+            onClose={() => setSelectedTextId(null)}
+            onDelete={() => { haptic.medium(); removeTextOverlay(sel.id); setSelectedTextId(null); }}
+          />
+        );
+      })()}
+
+      {/* Bottom panel — hidden during crop / sheets / text editing */}
+      {!isCropping && !showAiFamily && !showLogo && !showBlur && !subTool && !selectedTextId && (
         <View style={styles.bottomPanel}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
             {TOOL_TABS.map((tab) => (
@@ -1450,6 +1498,8 @@ const styles = StyleSheet.create({
   corner_br: { bottom: 0, right: 0, borderLeftWidth: 0,  borderTopWidth: 0 },
 
   textOverlay:        { position: 'absolute', top: 0, left: 0, padding: 6 },
+  textSelected:       { borderWidth: 1, borderColor: Colors.primary, borderStyle: 'dashed', borderRadius: 6 },
+  textDeleteBadge:    { position: 'absolute', top: -10, right: -10, width: 22, height: 22, borderRadius: 11, backgroundColor: Colors.error, alignItems: 'center', justifyContent: 'center' },
   bubbleTail:         { position: 'absolute', left: 18, bottom: -7, width: 18, height: 18, transform: [{ rotate: '45deg' }] },
   thoughtDot:         { position: 'absolute', borderRadius: 999 },
 

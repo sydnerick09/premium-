@@ -34,6 +34,8 @@ export interface TextOverlay {
   italic: boolean;
   x: number; // 0..1 relative position
   y: number; // 0..1 relative position
+  // Optional font family applied to the text.
+  fontFamily?: string;
   // Optional speech/thought bubble behind the text.
   bubble?: 'none' | 'speech' | 'thought' | 'pill' | 'box' | 'outline';
   bubbleColor?: string;
@@ -83,8 +85,9 @@ interface EditorState {
   // Actions
   loadImage: (uri: string, projectId?: string) => void;
   setCurrentUri: (uri: string, historyLabel?: string) => void;
-  addTextOverlay: (overlay: Omit<TextOverlay, 'id'>) => void;
+  addTextOverlay: (overlay: Omit<TextOverlay, 'id'>) => string;
   updateTextOverlayPosition: (id: string, x: number, y: number) => void;
+  updateTextOverlay: (id: string, patch: Partial<Omit<TextOverlay, 'id'>>) => void;
   removeTextOverlay: (id: string) => void;
   clearTextOverlays: () => void;
   updateAdjustment: (key: keyof AdjustmentValues, value: number) => void;
@@ -159,15 +162,24 @@ export const useEditorStore = create<EditorState>()(
     },
 
     addTextOverlay: (overlay) => {
+      const id = Date.now().toString();
       set((s) => {
-        s.textOverlays.push({ ...overlay, id: Date.now().toString() });
+        s.textOverlays.push({ ...overlay, id });
       });
+      return id;
     },
 
     updateTextOverlayPosition: (id, x, y) => {
       set((s) => {
         const t = s.textOverlays.find((o) => o.id === id);
         if (t) { t.x = x; t.y = y; }
+      });
+    },
+
+    updateTextOverlay: (id, patch) => {
+      set((s) => {
+        const t = s.textOverlays.find((o) => o.id === id);
+        if (t) Object.assign(t, patch);
       });
     },
 
