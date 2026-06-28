@@ -141,7 +141,7 @@ export default function ProfileScreen() {
           <MenuItem icon="cloud-outline" label="Cloud Backup" onPress={() => router.push('/settings')} />
           <MenuItem icon="shield-checkmark-outline" label="Privacy Policy" onPress={() => router.push('/privacy-policy')} />
           <MenuItem icon="document-text-outline" label="Terms of Service" onPress={() => router.push('/terms')} />
-          <MenuItem icon="star-outline" label="Rate Erick" onPress={() => {}} />
+          <MenuItem icon="star-outline" label="Rate Gweno Editor Pro" onPress={() => {}} />
           <MenuItem icon="share-social-outline" label="Share App" onPress={() => {}} />
         </View>
 
@@ -149,7 +149,7 @@ export default function ProfileScreen() {
           <MenuItem icon="log-out-outline" label="Sign Out" onPress={handleSignOut} danger />
         </View>
 
-        <Text style={[styles.version, { color: Colors.text.muted }]}>Erick v1.0.0 · Made with ❤️</Text>
+        <Text style={[styles.version, { color: Colors.text.muted }]}>Gweno Editor Pro v1.0.0 · Made with ❤️</Text>
         <View style={{ height: Layout.tabBarHeight + 20 }} />
       </ScrollView>
     </View>

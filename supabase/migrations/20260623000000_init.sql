@@ -1,4 +1,4 @@
--- Erick Photo Editor — initial schema
+-- Gweno Editor Pro — initial schema
 -- Run with the Supabase CLI (`supabase db push`) OR paste into the Supabase
 -- dashboard → SQL Editor → Run.
 

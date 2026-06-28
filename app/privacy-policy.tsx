@@ -23,7 +23,7 @@ const SECTIONS = [
     title: '2. How We Use Your Information',
     body: `We use your information to:
 
-• Provide and improve the Erick photo editing service
+• Provide and improve the Gweno Editor Pro photo editing service
 • Sync your projects across devices (cloud backup)
 • Send you important account and service updates
 • Analyze app performance and fix crashes
@@ -44,7 +44,7 @@ const SECTIONS = [
   },
   {
     title: '4. Third-Party Services',
-    body: `Erick uses the following third-party services:
+    body: `Gweno Editor Pro uses the following third-party services:
 
 • **Firebase** (Google LLC) — Authentication, database, cloud storage, analytics, and crash reporting
 • **RevenueCat** — Subscription and in-app purchase management
@@ -56,14 +56,14 @@ Each service has its own privacy policy. We recommend reviewing them at their re
     title: '5. Your Photos and Images',
     body: `We respect your creative content:
 
-• Photos you edit in Erick remain yours. We do not claim ownership of your images.
+• Photos you edit in Gweno Editor Pro remain yours. We do not claim ownership of your images.
 • Your original photos are processed on-device. We do not upload your photos to our servers without your explicit consent.
 • Cloud backup (if enabled) stores project data to allow sync across devices — you can disable this at any time.
 • We do not sell, share, or use your photos for advertising or AI training purposes.`,
   },
   {
     title: '6. Children\'s Privacy',
-    body: `Erick is not directed to children under 13. We do not knowingly collect personal information from children under 13. If you believe a child has provided us with personal information, please contact us and we will delete it promptly.`,
+    body: `Gweno Editor Pro is not directed to children under 13. We do not knowingly collect personal information from children under 13. If you believe a child has provided us with personal information, please contact us and we will delete it promptly.`,
   },
   {
     title: '7. Your Rights',
@@ -75,26 +75,26 @@ Each service has its own privacy policy. We recommend reviewing them at their re
 • **Portability**: Export your data in a machine-readable format
 • **Opt-out**: Disable analytics data collection in Settings > Analytics
 
-To exercise any of these rights, contact us at privacy@erickphotoeditor.app`,
+To exercise any of these rights, contact us at privacy@gwenoeditorpro.app`,
   },
   {
     title: '8. Advertising',
-    body: `The free version of Erick may display ads. We use industry-standard advertising partners that may use cookies or device identifiers. You can opt out of personalized advertising in your device settings.
+    body: `The free version of Gweno Editor Pro may display ads. We use industry-standard advertising partners that may use cookies or device identifiers. You can opt out of personalized advertising in your device settings.
 
 Premium subscribers enjoy an ad-free experience.`,
   },
   {
     title: '9. Changes to This Policy',
-    body: `We may update this Privacy Policy from time to time. We will notify you of significant changes via in-app notification or email. Continued use of Erick after changes take effect constitutes acceptance of the updated policy.`,
+    body: `We may update this Privacy Policy from time to time. We will notify you of significant changes via in-app notification or email. Continued use of Gweno Editor Pro after changes take effect constitutes acceptance of the updated policy.`,
   },
   {
     title: '10. Contact Us',
     body: `If you have questions, concerns, or requests regarding this Privacy Policy, please contact us:
 
-📧 privacy@erickphotoeditor.app
-🌐 erickphotoeditor.app/privacy
+📧 privacy@gwenoeditorpro.app
+🌐 gwenoeditorpro.app/privacy
 
-Erick Photo Editor
+Gweno Editor Pro
 Nairobi, Kenya`,
   },
 ];
@@ -115,7 +115,7 @@ export default function PrivacyPolicyScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <Text style={styles.effectiveDate}>Last updated: June 2025</Text>
         <Text style={styles.intro}>
-          At Erick Photo Editor, we take your privacy seriously. This Privacy Policy explains how we collect, use, and protect your personal information when you use our app.
+          At Gweno Editor Pro, we take your privacy seriously. This Privacy Policy explains how we collect, use, and protect your personal information when you use our app.
         </Text>
 
         {SECTIONS.map((section) => (

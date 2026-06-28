@@ -89,7 +89,7 @@ class ExportService {
     try {
       await Share.shareXFiles(
         [XFile(filePath)],
-        subject: 'Edited with Erick Photo Editor',
+        subject: 'Edited with Gweno Editor Pro',
       );
     } catch (e) {
       throw ExportException('Failed to share: $e');
@@ -100,7 +100,7 @@ class ExportService {
     try {
       await Share.shareXFiles(
         [XFile(filePath)],
-        subject: 'Edited with Erick Photo Editor',
+        subject: 'Edited with Gweno Editor Pro',
       );
     } catch (e) {
       throw ExportException('Failed to share to Instagram: $e');

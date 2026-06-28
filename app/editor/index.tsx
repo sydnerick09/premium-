@@ -172,7 +172,7 @@ const CROP_RATIOS: { label: string; ratio: number | null }[] = [
 
 // ── Draggable text overlay rendered on the canvas ───────────────────────────
 function DraggableText({
-  overlay, canvasW, canvasH, selected, onMove, onRemove, onSelect,
+  overlay, canvasW, canvasH, selected, onMove, onRemove, onSelect, onResize,
 }: {
   overlay: TextOverlay;
   canvasW: number;
@@ -181,26 +181,64 @@ function DraggableText({
   onMove: (id: string, x: number, y: number) => void;
   onRemove: (id: string) => void;
   onSelect: (id: string) => void;
+  onResize: (id: string, fontSize: number) => void;
 }) {
   const pan = useRef(new Animated.ValueXY({
     x: overlay.x * canvasW,
     y: overlay.y * canvasH,
   })).current;
 
+  // Latest props for the gesture closures (which are created once).
+  const ref = useRef(overlay);
+  ref.current = overlay;
+  // Pinch state: distance + font size captured when the 2nd finger lands.
+  const pinch = useRef<{ dist: number; size: number } | null>(null);
+
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 2 || Math.abs(g.dy) > 2,
       onPanResponderGrant: () => {
+        onSelect(ref.current.id);
         pan.extractOffset();
       },
-      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false }),
+      onPanResponderMove: (evt, g) => {
+        const touches = evt.nativeEvent.touches;
+        // Two fingers → pinch-to-resize the TEXT only (never the photo).
+        if (touches.length >= 2) {
+          const dx = touches[0].pageX - touches[1].pageX;
+          const dy = touches[0].pageY - touches[1].pageY;
+          const dist = Math.hypot(dx, dy) || 1;
+          if (!pinch.current) pinch.current = { dist, size: ref.current.fontSize };
+          else {
+            const next = Math.max(10, Math.min(200, pinch.current.size * (dist / pinch.current.dist)));
+            onResize(ref.current.id, next);
+          }
+          return;
+        }
+        // One finger → move.
+        pan.x.setValue(g.dx);
+        pan.y.setValue(g.dy);
+      },
       onPanResponderRelease: () => {
+        pinch.current = null;
         pan.flattenOffset();
-        // @ts-ignore access internal value
         const nx = (pan.x as any)._value / canvasW;
-        // @ts-ignore
         const ny = (pan.y as any)._value / canvasH;
-        onMove(overlay.id, Math.max(0, Math.min(1, nx)), Math.max(0, Math.min(1, ny)));
+        onMove(ref.current.id, Math.max(0, Math.min(1, nx)), Math.max(0, Math.min(1, ny)));
+      },
+    })
+  ).current;
+
+  // Bottom-right drag handle to resize on devices without pinch (e.g. desktop).
+  const resizeStart = useRef(0);
+  const resizePan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => { resizeStart.current = ref.current.fontSize; },
+      onPanResponderMove: (_, g) => {
+        const delta = (g.dx + g.dy) / 2;
+        onResize(ref.current.id, Math.max(10, Math.min(200, resizeStart.current + delta * 0.6)));
       },
     })
   ).current;
@@ -210,12 +248,12 @@ function DraggableText({
   const hasBubble = bubble !== 'none';
   const outlineOnly = bubble === 'outline';
 
-  // Container shape for the bubble.
+  // Container shape for the bubble (LABEL = filled, BORDER = outline).
   const bubbleStyle = hasBubble
     ? {
         backgroundColor: outlineOnly ? 'transparent' : bubbleColor,
         borderColor: outlineOnly ? bubbleColor : 'transparent',
-        borderWidth: outlineOnly ? 2 : 0,
+        borderWidth: outlineOnly ? 3 : 0,
         borderRadius: bubble === 'box' ? 8 : bubble === 'pill' ? 999 : 18,
         paddingHorizontal: bubble === 'pill' ? 18 : 14,
         paddingVertical: bubble === 'pill' ? 10 : 12,
@@ -230,8 +268,8 @@ function DraggableText({
         { transform: [{ translateX: pan.x }, { translateY: pan.y }] },
       ]}
     >
-      <TouchableOpacity onPress={() => onSelect(overlay.id)} onLongPress={() => onRemove(overlay.id)} activeOpacity={0.9}>
-        <View style={[hasBubble && bubbleStyle, selected && styles.textSelected]}>
+      <TouchableOpacity onPress={() => onSelect(overlay.id)} activeOpacity={0.9}>
+        <View style={hasBubble ? bubbleStyle : undefined}>
           <Text
             style={{
               color: overlay.color,
@@ -247,11 +285,6 @@ function DraggableText({
           >
             {overlay.content || ' '}
           </Text>
-          {selected && (
-            <TouchableOpacity onPress={() => onRemove(overlay.id)} style={styles.textDeleteBadge} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close" size={14} color={Colors.white} />
-            </TouchableOpacity>
-          )}
           {/* Speech tail */}
           {bubble === 'speech' && (
             <View style={[styles.bubbleTail, { backgroundColor: bubbleColor }]} pointerEvents="none" />
@@ -264,6 +297,19 @@ function DraggableText({
             </>
           )}
         </View>
+
+        {/* Selection chrome — kept separate so it never hides the BORDER colour. */}
+        {selected && (
+          <>
+            <View pointerEvents="none" style={styles.selectionBox} />
+            <TouchableOpacity onPress={() => onRemove(overlay.id)} style={styles.textDeleteBadge} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close" size={14} color={Colors.white} />
+            </TouchableOpacity>
+            <View {...resizePan.panHandlers} style={styles.textResizeHandle} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="resize-outline" size={13} color={Colors.white} />
+            </View>
+          </>
+        )}
       </TouchableOpacity>
     </Animated.View>
   );
@@ -440,6 +486,11 @@ export default function EditorScreen() {
     if (cropRatio) {
       if (dispRect.width / dispRect.height > cropRatio) { h = dispRect.height; w = h * cropRatio; }
       else { w = dispRect.width; h = w / cropRatio; }
+    } else {
+      // Free: start inset to 80% so the corner handles sit INSIDE the image and
+      // are easy to grab — then drag any corner to crop to any size you want.
+      w = dispRect.width * 0.8;
+      h = dispRect.height * 0.8;
     }
     setCropRect({ x: dispRect.left + (dispRect.width - w) / 2, y: dispRect.top + (dispRect.height - h) / 2, w, h });
   }, [isCropping, cropRatio, dispRect]);
@@ -629,7 +680,7 @@ export default function EditorScreen() {
         setSubTool(null);
         haptic.light();
         const newId = addTextOverlay({
-          content: 'Text',
+          content: '',
           color: '#FFFFFF',
           fontSize: 36,
           align: 'center',
@@ -1114,7 +1165,8 @@ export default function EditorScreen() {
             selected={selectedTextId === overlay.id}
             onMove={updateTextOverlayPosition}
             onRemove={(id) => { haptic.medium(); removeTextOverlay(id); if (selectedTextId === id) setSelectedTextId(null); }}
-            onSelect={(id) => { haptic.selection(); setSelectedTextId(id); }}
+            onSelect={(id) => { setSelectedTextId(id); }}
+            onResize={(id, fontSize) => updateTextOverlay(id, { fontSize })}
           />
         ))}
 
@@ -1401,7 +1453,11 @@ export default function EditorScreen() {
           <TextEditToolbar
             overlay={sel}
             onChange={(patch) => updateTextOverlay(sel.id, patch)}
-            onClose={() => setSelectedTextId(null)}
+            onClose={() => {
+              // Discard a text layer left empty so blank placeholders never stick.
+              if (!sel.content.trim()) removeTextOverlay(sel.id);
+              setSelectedTextId(null);
+            }}
             onDelete={() => { haptic.medium(); removeTextOverlay(sel.id); setSelectedTextId(null); }}
           />
         );
@@ -1498,8 +1554,9 @@ const styles = StyleSheet.create({
   corner_br: { bottom: 0, right: 0, borderLeftWidth: 0,  borderTopWidth: 0 },
 
   textOverlay:        { position: 'absolute', top: 0, left: 0, padding: 6 },
-  textSelected:       { borderWidth: 1, borderColor: Colors.primary, borderStyle: 'dashed', borderRadius: 6 },
-  textDeleteBadge:    { position: 'absolute', top: -10, right: -10, width: 22, height: 22, borderRadius: 11, backgroundColor: Colors.error, alignItems: 'center', justifyContent: 'center' },
+  selectionBox:       { position: 'absolute', top: -6, left: -6, right: -6, bottom: -6, borderWidth: 1, borderColor: Colors.primary, borderStyle: 'dashed', borderRadius: 8 },
+  textDeleteBadge:    { position: 'absolute', top: -12, right: -12, width: 24, height: 24, borderRadius: 12, backgroundColor: Colors.error, alignItems: 'center', justifyContent: 'center' },
+  textResizeHandle:   { position: 'absolute', bottom: -12, right: -12, width: 24, height: 24, borderRadius: 12, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
   bubbleTail:         { position: 'absolute', left: 18, bottom: -7, width: 18, height: 18, transform: [{ rotate: '45deg' }] },
   thoughtDot:         { position: 'absolute', borderRadius: 999 },
 

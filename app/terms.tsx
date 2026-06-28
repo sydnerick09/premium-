@@ -9,13 +9,13 @@ import { Layout } from '../constants/Layout';
 const SECTIONS = [
   {
     title: '1. Acceptance of Terms',
-    body: `By downloading, installing, or using the Erick Photo Editor application ("App"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use the App.
+    body: `By downloading, installing, or using the Gweno Editor Pro application ("App"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, do not use the App.
 
 These Terms apply to all users of the App, including free and premium subscribers.`,
   },
   {
     title: '2. Description of Service',
-    body: `Erick Photo Editor is a mobile photo editing application that provides:
+    body: `Gweno Editor Pro is a mobile photo editing application that provides:
 
 • Photo import from camera and gallery
 • AI-powered photo enhancement tools
@@ -40,7 +40,7 @@ We reserve the right to terminate accounts that violate these Terms.`,
   },
   {
     title: '4. User Content',
-    body: `You retain ownership of all photos and content you create with Erick:
+    body: `You retain ownership of all photos and content you create with Gweno Editor Pro:
 
 • You grant us a limited license to store and process your content solely to provide the service
 • You represent that you have the right to use all photos you import into the App
@@ -64,7 +64,7 @@ We do not claim ownership of your photos or creations.`,
   },
   {
     title: '6. Premium Subscriptions',
-    body: `Erick offers premium subscription plans:
+    body: `Gweno Editor Pro offers premium subscription plans:
 
 • **Billing**: Subscriptions are billed through Google Play. By subscribing, you agree to Google Play's terms.
 • **Auto-renewal**: Subscriptions auto-renew at the end of each period unless cancelled at least 24 hours before renewal.
@@ -77,11 +77,11 @@ No refunds are provided for partial subscription periods.`,
   },
   {
     title: '7. Intellectual Property',
-    body: `The Erick app, including its design, code, filters, and other content (excluding your photos), is owned by us and protected by intellectual property laws:
+    body: `The Gweno Editor Pro app, including its design, code, filters, and other content (excluding your photos), is owned by us and protected by intellectual property laws:
 
 • You may not copy, reproduce, or redistribute any part of the App
 • All filters, effects, and AI models are proprietary
-• The Erick name and logo are trademarks
+• The Gweno Editor Pro name and logo are trademarks
 • Open source components are used under their respective licenses`,
   },
   {
@@ -134,10 +134,10 @@ Upon termination, your right to use the App ceases immediately.`,
     title: '14. Contact',
     body: `For questions about these Terms:
 
-📧 legal@erickphotoeditor.app
-🌐 erickphotoeditor.app/terms
+📧 legal@gwenoeditorpro.app
+🌐 gwenoeditorpro.app/terms
 
-Erick Photo Editor
+Gweno Editor Pro
 Nairobi, Kenya`,
   },
 ];
@@ -158,7 +158,7 @@ export default function TermsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <Text style={styles.effectiveDate}>Last updated: June 2025</Text>
         <Text style={styles.intro}>
-          Please read these Terms of Service carefully before using Erick Photo Editor. These Terms govern your use of our application and services.
+          Please read these Terms of Service carefully before using Gweno Editor Pro. These Terms govern your use of our application and services.
         </Text>
 
         {SECTIONS.map((section) => (

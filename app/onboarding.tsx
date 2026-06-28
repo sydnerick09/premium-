@@ -1,222 +1,100 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  TouchableOpacity,
-} from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
-import { LinearGradient } from '@components/ui/SolidGradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/Colors';
 import { Layout } from '../constants/Layout';
 import { localStorage } from '../services/storage/localStorage.service';
 
-const { width } = Dimensions.get('window');
-
-const slides = [
-  {
-    id: '1',
-    icon: '✦',
-    title: 'AI-Powered Editing',
-    subtitle: 'One tap to enhance any photo with intelligent AI that auto-adjusts brightness, sharpness, colors, and more.',
-    gradient: Colors.gradients.primary,
-  },
-  {
-    id: '2',
-    icon: '🎨',
-    title: '100+ Pro Filters',
-    subtitle: 'From vintage film looks to cinematic LUTs — apply stunning filters and create your own signature style.',
-    gradient: Colors.gradients.accent,
-  },
-  {
-    id: '3',
-    icon: '✂️',
-    title: 'Pro Tools & Layers',
-    subtitle: 'Crop, rotate, perspective correct, draw, add text and stickers with a full non-destructive layer system.',
-    gradient: ['#10B981', '#0891B2'],
-  },
-  {
-    id: '4',
-    icon: '☁️',
-    title: 'Cloud Sync & Share',
-    subtitle: 'Your projects are automatically backed up. Export in 4K and share directly to social media.',
-    gradient: Colors.gradients.gold,
-  },
+// Single-screen onboarding — one clear value proposition + a few proof points
+// and a single call-to-action, so new users get into the app fast.
+const FEATURES: { icon: string; title: string; desc: string }[] = [
+  { icon: 'sparkles',     title: 'One-tap AI enhance', desc: 'Fix lighting, colour & sharpness instantly.' },
+  { icon: 'cut',          title: 'Clean background swap', desc: 'Change the background — your subject stays untouched.' },
+  { icon: 'color-filter', title: 'Pro filters & text',  desc: '100+ filters, fonts, stickers & collages.' },
 ];
 
 export default function OnboardingScreen() {
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  const handleNext = () => {
-    if (activeIndex < slides.length - 1) {
-      setActiveIndex(activeIndex + 1);
-    } else {
-      handleGetStarted();
-    }
-  };
-
-  const handleSkip = () => handleGetStarted();
-
   const handleGetStarted = () => {
     localStorage.setOnboardingDone();
     router.replace('/(auth)/login');
   };
 
-  const isLast = activeIndex === slides.length - 1;
-
-  const slide = slides[activeIndex];
-
   return (
     <View style={styles.container}>
-      {/* Render the active slide directly. (A horizontal FlatList with
-          programmatic scrollToIndex does not page reliably on web, which made
-          every "Next" tap show the first slide's text again.) */}
-      <View style={[styles.slide, { width }]} key={slide.id}>
-        <LinearGradient
-          colors={slide.gradient as [string, string]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.iconContainer}
-        >
-          <Text style={styles.icon}>{slide.icon}</Text>
-        </LinearGradient>
-        <Text style={styles.title}>{slide.title}</Text>
-        <Text style={styles.subtitle}>{slide.subtitle}</Text>
-      </View>
+      <SafeAreaView edges={['top', 'bottom']} style={styles.safe}>
+        <View style={styles.content}>
+          {/* Brand mark */}
+          <View style={styles.logo}>
+            <Ionicons name="camera" size={40} color={Colors.white} />
+          </View>
 
-      {/* Indicators */}
-      <View style={styles.indicators}>
-        {slides.map((_, i) => (
-          <View
-            key={i}
-            style={[
-              styles.dot,
-              i === activeIndex && styles.dotActive,
-            ]}
-          />
-        ))}
-      </View>
+          <Text style={styles.title}>Studio-quality photos,{'\n'}in seconds.</Text>
+          <Text style={styles.subtitle}>
+            The all-in-one editor that helps you turn everyday shots into work that wins clients.
+          </Text>
 
-      {/* Actions */}
-      <SafeAreaView edges={['bottom']} style={styles.footer}>
-        <TouchableOpacity
-          onPress={handleNext}
-          activeOpacity={0.85}
-          style={styles.nextButton}
-        >
-          <LinearGradient
-            colors={Colors.gradients.primary}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.nextGradient}
-          >
-            <Text style={styles.nextText}>
-              {isLast ? 'Get Started' : 'Next'}
-            </Text>
-          </LinearGradient>
-        </TouchableOpacity>
+          {/* Proof points */}
+          <View style={styles.features}>
+            {FEATURES.map((f) => (
+              <View key={f.title} style={styles.featureRow}>
+                <View style={styles.featureIcon}>
+                  <Ionicons name={f.icon as any} size={20} color={Colors.primary} />
+                </View>
+                <View style={styles.featureText}>
+                  <Text style={styles.featureTitle}>{f.title}</Text>
+                  <Text style={styles.featureDesc}>{f.desc}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
 
-        {!isLast && (
-          <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
-            <Text style={styles.skipText}>Skip</Text>
+        {/* Single CTA */}
+        <View style={styles.footer}>
+          <TouchableOpacity onPress={handleGetStarted} activeOpacity={0.85} style={styles.cta}>
+            <Text style={styles.ctaText}>Get Started</Text>
+            <Ionicons name="arrow-forward" size={18} color={Colors.white} />
           </TouchableOpacity>
-        )}
+        </View>
       </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.dark.background,
+  container: { flex: 1, backgroundColor: Colors.dark.background },
+  safe: { flex: 1, justifyContent: 'space-between' },
+  content: { flex: 1, justifyContent: 'center', paddingHorizontal: 28 },
+
+  logo: {
+    width: 84, height: 84, borderRadius: 24, backgroundColor: Colors.primary,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 28,
   },
-  slide: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-    paddingTop: 80,
-  },
-  iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 40,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.4,
-    shadowRadius: 24,
-    elevation: 12,
-  },
-  icon: { fontSize: 52 },
   title: {
-    fontSize: Layout.fontSize['4xl'],
-    fontFamily: 'Poppins_700Bold',
-    color: Colors.text.primary,
-    textAlign: 'center',
-    marginBottom: 16,
-    lineHeight: 36,
+    fontSize: Layout.fontSize['4xl'], fontFamily: 'Poppins_700Bold',
+    color: Colors.text.primary, lineHeight: 40, marginBottom: 12,
   },
   subtitle: {
-    fontSize: Layout.fontSize.md,
-    fontFamily: 'Poppins_400Regular',
-    color: Colors.text.secondary,
-    textAlign: 'center',
-    lineHeight: 26,
+    fontSize: Layout.fontSize.md, fontFamily: 'Poppins_400Regular',
+    color: Colors.text.secondary, lineHeight: 24, marginBottom: 36,
   },
-  indicators: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
-    marginBottom: 32,
+
+  features: { gap: 18 },
+  featureRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  featureIcon: {
+    width: 44, height: 44, borderRadius: 14, backgroundColor: '#0C1915',
+    alignItems: 'center', justifyContent: 'center',
   },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.dark.border,
+  featureText: { flex: 1 },
+  featureTitle: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_600SemiBold', color: Colors.text.primary },
+  featureDesc: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_400Regular', color: Colors.text.muted, marginTop: 2 },
+
+  footer: { paddingHorizontal: 24, paddingBottom: 16 },
+  cta: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: Colors.primary, borderRadius: Layout.radius.lg, paddingVertical: 17,
   },
-  dotActive: {
-    width: 24,
-    backgroundColor: Colors.primary,
-  },
-  footer: {
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  nextButton: {
-    borderRadius: Layout.radius.lg,
-    overflow: 'hidden',
-  },
-  nextGradient: {
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderRadius: Layout.radius.lg,
-  },
-  nextText: {
-    fontSize: Layout.fontSize.md,
-    fontFamily: 'Poppins_600SemiBold',
-    color: Colors.white,
-    letterSpacing: 0.5,
-  },
-  skipButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  skipText: {
-    fontSize: Layout.fontSize.base,
-    fontFamily: 'Poppins_400Regular',
-    color: Colors.text.muted,
-  },
+  ctaText: { fontSize: Layout.fontSize.md, fontFamily: 'Poppins_700Bold', color: Colors.white, letterSpacing: 0.3 },
 });

@@ -1,12 +1,12 @@
 export const AppConstants = {
   // App info
-  appName: 'Erick',
+  appName: 'Gweno Editor Pro',
   appVersion: '1.0.0',
   packageName: 'com.erick.photoeditor',
-  supportEmail: 'support@erickphotoeditor.app',
-  privacyPolicyUrl: 'https://erickphotoeditor.app/privacy-policy',
-  termsUrl: 'https://erickphotoeditor.app/terms',
-  websiteUrl: 'https://erickphotoeditor.app',
+  supportEmail: 'support@gwenoeditorpro.app',
+  privacyPolicyUrl: 'https://gwenoeditorpro.app/privacy-policy',
+  termsUrl: 'https://gwenoeditorpro.app/terms',
+  websiteUrl: 'https://gwenoeditorpro.app',
   playStoreUrl:
     'https://play.google.com/store/apps/details?id=com.erick.photoeditor',
 

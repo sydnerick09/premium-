@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Erick",
+    "name": "Gweno Editor Pro",
     "slug": "erick-photo-editor",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -20,10 +20,10 @@
       "bundleIdentifier": "com.erick.photoeditor",
       "buildNumber": "1",
       "infoPlist": {
-        "NSCameraUsageDescription": "Erick needs camera access to take photos for editing.",
-        "NSPhotoLibraryUsageDescription": "Erick needs access to your photo library to select images for editing.",
-        "NSPhotoLibraryAddUsageDescription": "Erick saves edited photos to your library.",
-        "NSMicrophoneUsageDescription": "Erick needs microphone access for video recording.",
+        "NSCameraUsageDescription": "Gweno Editor Pro needs camera access to take photos for editing.",
+        "NSPhotoLibraryUsageDescription": "Gweno Editor Pro needs access to your photo library to select images for editing.",
+        "NSPhotoLibraryAddUsageDescription": "Gweno Editor Pro saves edited photos to your library.",
+        "NSMicrophoneUsageDescription": "Gweno Editor Pro needs microphone access for video recording.",
         "NSFaceIDUsageDescription": "Use Face ID to securely access your account."
       }
     },
@@ -54,7 +54,7 @@
           "data": [
             {
               "scheme": "https",
-              "host": "erickphotoeditor.app"
+              "host": "gwenoeditorpro.app"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
@@ -77,21 +77,21 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Erick to access your camera to take photos for editing."
+          "cameraPermission": "Allow Gweno Editor Pro to access your camera to take photos for editing."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Erick to access your photos for editing.",
-          "cameraPermission": "Allow Erick to use your camera to take photos."
+          "photosPermission": "Allow Gweno Editor Pro to access your photos for editing.",
+          "cameraPermission": "Allow Gweno Editor Pro to use your camera to take photos."
         }
       ],
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow Erick to save edited photos to your library.",
-          "savePhotosPermission": "Allow Erick to save photos to your library.",
+          "photosPermission": "Allow Gweno Editor Pro to save edited photos to your library.",
+          "savePhotosPermission": "Allow Gweno Editor Pro to save photos to your library.",
           "isAccessMediaLocationEnabled": true
         }
       ],

@@ -38,7 +38,7 @@ class ExportServiceWeb {
         const res = await fetch(uri);
         const blob = await res.blob();
         const file = new File([blob], filename ?? 'erick_photo.jpg', { type: blob.type });
-        await navigator.share({ files: [file], title: 'Erick Photo Editor' });
+        await navigator.share({ files: [file], title: 'Gweno Editor Pro' });
         return;
       } catch {}
     }

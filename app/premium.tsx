@@ -176,7 +176,7 @@ export default function PremiumScreen() {
         {/* Hero */}
         <LinearGradient colors={Colors.gradients.premium} style={styles.hero}>
           <Text style={styles.heroIcon}>👑</Text>
-          <Text style={styles.heroTitle}>Erick Premium</Text>
+          <Text style={styles.heroTitle}>Gweno Premium</Text>
           <Text style={styles.heroSubtitle}>Unlock your full creative potential</Text>
         </LinearGradient>
 

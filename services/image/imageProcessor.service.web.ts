@@ -364,10 +364,15 @@ class ImageProcessorWeb {
       if (y < h - 1) { const n = idx + w; if (!isBg[n] && eligible(n)) { isBg[n] = 1; stack[sp++] = n; } }
     }
 
-    // 4. Composite with a soft 3×3 feather on the mask so edges aren't jagged.
+    // 4. Composite — ONLY repaint pixels flagged as background. The subject is
+    //    left 100% untouched: its colours and lighting never change, and we never
+    //    blend background colour into a subject pixel. A light feather is applied
+    //    on the background side only, so the inner edge isn't harshly jagged
+    //    without ever bleeding into the subject.
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         const idx = y * w + x;
+        if (!isBg[idx]) continue;        // subject pixel → leave exactly as-is
         let sum = 0, cnt = 0;
         for (let dy = -1; dy <= 1; dy++) {
           const yy = y + dy; if (yy < 0 || yy >= h) continue;
@@ -376,8 +381,9 @@ class ImageProcessorWeb {
             sum += isBg[yy * w + xx]; cnt++;
           }
         }
-        const alpha = sum / cnt;          // 1 = background, 0 = subject
-        if (alpha <= 0) continue;
+        // Deep background → fully replaced; right next to the subject → eased so
+        // the boundary stays smooth. Never below ~0.5 so old background can't show.
+        const alpha = 0.5 + 0.5 * (sum / cnt);
         const p = idx * 4;
         data[p]     = data[p]     * (1 - alpha) + bgData[p]     * alpha;
         data[p + 1] = data[p + 1] * (1 - alpha) + bgData[p + 1] * alpha;

@@ -44,7 +44,7 @@ if (getRNMinorVersion() >= 75) {
   }
 }
 
-rootProject.name = 'Erick'
+rootProject.name = 'GwenoEditorPro'
 
 dependencyResolutionManagement {
   versionCatalogs {

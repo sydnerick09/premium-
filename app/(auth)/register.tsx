@@ -124,7 +124,7 @@ export default function RegisterScreen() {
             </TouchableOpacity>
 
             <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join Erick and start editing like a pro</Text>
+            <Text style={styles.subtitle}>Join Gweno Editor Pro and start editing like a pro</Text>
 
             <View style={styles.form}>
               <InputField

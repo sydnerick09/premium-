@@ -124,7 +124,7 @@ export default function HomeScreen() {
             delayLongPress={650}
             style={styles.brandWrap}
           >
-            <Text style={styles.brand}>Polish</Text>
+            <Text style={styles.brand}>Gweno</Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => router.push('/premium')} style={styles.proBtn}>

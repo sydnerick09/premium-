@@ -172,7 +172,7 @@ export default function ExportScreen() {
                   key={r.id}
                   onPress={() => {
                     if (isLocked) {
-                      Alert.alert('Premium Required', 'Upgrade to Erick Premium for 4K export.', [
+                      Alert.alert('Premium Required', 'Upgrade to Gweno Premium for 4K export.', [
                         { text: 'Maybe later', style: 'cancel' },
                         { text: 'Upgrade', onPress: () => router.push('/premium') },
                       ]);
@@ -238,7 +238,7 @@ export default function ExportScreen() {
                       </View>
                     )}
                   </View>
-                  <Text style={styles.toggleDesc}>Add "Erick" watermark to exported photo</Text>
+                  <Text style={styles.toggleDesc}>Add "Gweno Editor Pro" watermark to exported photo</Text>
                 </View>
               </View>
               <Switch

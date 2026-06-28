@@ -36,7 +36,7 @@ export default function CreateScreen() {
     if (status !== 'granted') {
       Alert.alert(
         'Camera Permission Required',
-        'Erick needs access to your camera to take photos for editing. Please grant camera permission in your device settings.',
+        'Gweno Editor Pro needs access to your camera to take photos for editing. Please grant camera permission in your device settings.',
         [
           { text: 'Cancel', style: 'cancel', onPress: () => router.back() },
           { text: 'Open Gallery Instead', onPress: () => openGallery() },
@@ -64,7 +64,7 @@ export default function CreateScreen() {
     if (status !== 'granted') {
       Alert.alert(
         'Gallery Permission Required',
-        'Erick needs access to your photo library to select photos for editing.',
+        'Gweno Editor Pro needs access to your photo library to select photos for editing.',
         [{ text: 'OK', onPress: () => router.back() }]
       );
       return;

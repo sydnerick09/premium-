@@ -2,16 +2,16 @@ class AppConstants {
   AppConstants._();
 
   // App info
-  static const String appName = 'Erick';
+  static const String appName = 'Gweno Editor Pro';
   static const String appVersion = '1.0.0';
   static const String packageName = 'com.erick.photoeditor';
   static const String playStoreUrl =
       'https://play.google.com/store/apps/details?id=com.erick.photoeditor';
-  static const String supportEmail = 'support@erickphotoeditor.app';
+  static const String supportEmail = 'support@gwenoeditorpro.app';
   static const String privacyPolicyUrl =
-      'https://erickphotoeditor.app/privacy-policy';
-  static const String termsUrl = 'https://erickphotoeditor.app/terms';
-  static const String websiteUrl = 'https://erickphotoeditor.app';
+      'https://gwenoeditorpro.app/privacy-policy';
+  static const String termsUrl = 'https://gwenoeditorpro.app/terms';
+  static const String websiteUrl = 'https://gwenoeditorpro.app';
 
   // Storage keys
   static const String kThemeMode = 'theme_mode';

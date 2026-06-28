@@ -81,7 +81,7 @@ class ExportService {
         const asset = await MediaLibrary.createAssetAsync(destUri);
         assetId = asset.id;
         savedToGallery = true;
-        await MediaLibrary.createAlbumAsync('Erick', asset, false).catch(() => {});
+        await MediaLibrary.createAlbumAsync('Gweno Editor Pro', asset, false).catch(() => {});
       }
     }
 
@@ -93,7 +93,7 @@ class ExportService {
     if (!canShare) throw new Error('Sharing is not available on this device.');
     await Sharing.shareAsync(uri, {
       mimeType: 'image/jpeg',
-      dialogTitle: 'Share via Erick Photo Editor',
+      dialogTitle: 'Share via Gweno Editor Pro',
     });
   }
 
@@ -105,7 +105,7 @@ class ExportService {
     const { status } = await MediaLibrary.requestPermissionsAsync();
     if (status !== 'granted') throw new Error('Gallery permission denied.');
     const asset = await MediaLibrary.createAssetAsync(uri);
-    await MediaLibrary.createAlbumAsync('Erick', asset, false).catch(() => {});
+    await MediaLibrary.createAlbumAsync('Gweno Editor Pro', asset, false).catch(() => {});
     return asset.id;
   }
 }

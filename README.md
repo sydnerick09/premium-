@@ -1,4 +1,4 @@
-# Erick Photo Editor
+# Gweno Editor Pro
 
 A production-ready AI-powered photo editing app built with **Expo React Native** (SDK 51). Available on Android via Google Play.
 
@@ -223,9 +223,9 @@ EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 EXPO_PUBLIC_FIREBASE_APP_ID=your_app_id
 EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
 EXPO_PUBLIC_REVENUECAT_ANDROID_KEY=your_revenuecat_key
-EXPO_PUBLIC_APP_URL=https://erickphotoeditor.app
-EXPO_PUBLIC_PRIVACY_URL=https://erickphotoeditor.app/privacy
-EXPO_PUBLIC_TERMS_URL=https://erickphotoeditor.app/terms
+EXPO_PUBLIC_APP_URL=https://gwenoeditorpro.app
+EXPO_PUBLIC_PRIVACY_URL=https://gwenoeditorpro.app/privacy
+EXPO_PUBLIC_TERMS_URL=https://gwenoeditorpro.app/terms
 ```
 
 ---
@@ -295,7 +295,7 @@ The AAB file will be available for download from the EAS dashboard.
 1. Go to [Google Play Console](https://play.google.com/console)
 2. Create a new app
 3. Fill in the store listing:
-   - **App name**: Erick Photo Editor
+   - **App name**: Gweno Editor Pro
    - **Short description**: AI-powered photo editor with 100+ filters
    - **Full description**: Paste from your marketing copy
    - **Category**: Photography
@@ -465,6 +465,6 @@ AI enhancement simulates on-device processing with adjustment pipelines (real ML
 
 ## Contact
 
-- Email: support@erickphotoeditor.app
-- Privacy: privacy@erickphotoeditor.app
-- Website: https://erickphotoeditor.app
+- Email: support@gwenoeditorpro.app
+- Privacy: privacy@gwenoeditorpro.app
+- Website: https://gwenoeditorpro.app

@@ -91,7 +91,7 @@ export default function LoginScreen() {
               >
                 <Ionicons name="aperture" size={38} color={Colors.white} />
               </LinearGradient>
-              <Text style={styles.appName}>Erick</Text>
+              <Text style={styles.appName}>Gweno</Text>
               <Text style={styles.welcomeText}>Welcome back</Text>
               <Text style={styles.subtitleText}>
                 Sign in to continue editing your photos

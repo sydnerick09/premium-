@@ -80,8 +80,8 @@ export default function SplashScreen() {
       </Animated.View>
 
       <Animated.View style={[styles.textContainer, textStyle]}>
-        <Animated.Text style={styles.appName}>ERICK</Animated.Text>
-        <Animated.Text style={styles.tagline}>AI Photo Editor</Animated.Text>
+        <Animated.Text style={styles.appName}>GWENO</Animated.Text>
+        <Animated.Text style={styles.tagline}>Editor Pro</Animated.Text>
       </Animated.View>
 
       <View style={styles.footer}>

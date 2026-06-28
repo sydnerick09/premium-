@@ -62,7 +62,7 @@ export default function SettingsScreen() {
     // Alert.alert button callbacks are ignored on react-native-web, so sign-out
     // did nothing in the browser. Use window.confirm on web, native Alert on phone.
     if (Platform.OS === 'web') {
-      if (typeof window === 'undefined' || window.confirm('Sign out of Erick?')) doSignOut();
+      if (typeof window === 'undefined' || window.confirm('Sign out of Gweno Editor Pro?')) doSignOut();
     } else {
       Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
         { text: 'Cancel', style: 'cancel' },
@@ -82,17 +82,17 @@ export default function SettingsScreen() {
   };
 
   const handleShare = async () => {
-    const message = `Check out Erick Photo Editor — edit your photos like a pro! ${APP_URL}`;
+    const message = `Check out Gweno Editor Pro — edit your photos like a pro! ${APP_URL}`;
     try {
       if (Platform.OS === 'web') {
         const nav: any = typeof navigator !== 'undefined' ? navigator : null;
         if (nav?.share) {
           // Native share sheet (Gmail, Messages, WhatsApp…) on supported mobile browsers.
-          await nav.share({ title: 'Erick Photo Editor', text: message, url: APP_URL });
+          await nav.share({ title: 'Gweno Editor Pro', text: message, url: APP_URL });
         } else if (typeof window !== 'undefined') {
           // Fallback: open an email draft (opens Gmail / default mail to send).
           window.open(
-            `mailto:?subject=${encodeURIComponent('Erick Photo Editor')}&body=${encodeURIComponent(message)}`,
+            `mailto:?subject=${encodeURIComponent('Gweno Editor Pro')}&body=${encodeURIComponent(message)}`,
             '_blank',
           );
         }
@@ -254,7 +254,7 @@ export default function SettingsScreen() {
             <ToggleRow
               icon="analytics-outline"
               label="Analytics"
-              desc="Help improve Erick by sharing usage data"
+              desc="Help improve Gweno Editor Pro by sharing usage data"
               value={analyticsEnabled}
               onChange={(v) => useSettingsStore.setState({ analyticsEnabled: v })}
             />
@@ -299,13 +299,13 @@ export default function SettingsScreen() {
             <View style={styles.separator} />
             <NavRow
               icon="star-outline"
-              label="Rate Erick"
+              label="Rate Gweno Editor Pro"
               onPress={handleRate}
             />
             <View style={styles.separator} />
             <NavRow
               icon="share-social-outline"
-              label="Share Erick"
+              label="Share Gweno Editor Pro"
               onPress={handleShare}
             />
             <View style={styles.separator} />
