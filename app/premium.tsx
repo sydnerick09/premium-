@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Image,
-  NativeSyntheticEvent, NativeScrollEvent,
+  NativeSyntheticEvent, NativeScrollEvent, Animated, Easing,
 } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,7 +16,7 @@ import { Layout } from '../constants/Layout';
 // snaps perfectly). The card is small enough that the whole screen fits with no
 // vertical scrolling.
 const SLIDE_W = Layout.window.width;
-const CARD_W = Math.round(Layout.window.width * 0.36);
+const CARD_W = Math.round(Layout.window.width * 0.50);
 const CARD_H = Math.round(CARD_W * 1.5);
 
 // ── Hero cards — ONE portrait image per card ─────────────────────────────────
@@ -52,6 +52,40 @@ const PLANS: Plan[] = [
   { id: 'quarter', label: '3 Months', price: 'Ksh 1,600', per: '/3 months', sub: 'About Ksh 123/wk, billed quarterly', sticker: 'SAVE 75%', badge: 'POPULAR',    productId: 'gweno_premium_quarter' },
   { id: 'yearly',  label: 'Yearly',   price: 'Ksh 3,000', per: '/year',     sub: '7-day free trial · about Ksh 58/wk', sticker: 'SAVE 88%', badge: 'BEST VALUE', best: true, productId: 'gweno_premium_yearly' },
 ];
+
+// Slowly auto-scrolling row of feature icons (no cards — just icons + labels).
+function FeatureMarquee() {
+  const tx = useRef(new Animated.Value(0)).current;
+  const [setW, setSetW] = useState(0);
+
+  useEffect(() => {
+    if (!setW) return;
+    tx.setValue(0);
+    const anim = Animated.loop(
+      Animated.timing(tx, { toValue: -setW, duration: setW * 28, easing: Easing.linear, useNativeDriver: false }),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [setW]);
+
+  return (
+    <View style={styles.marqueeWrap} pointerEvents="none">
+      <Animated.View
+        style={[styles.marqueeRow, { transform: [{ translateX: tx }] }]}
+        onLayout={(e) => setSetW(e.nativeEvent.layout.width / 2)} // two copies → half = one set
+      >
+        {[...FEATURES, ...FEATURES].map((f, i) => (
+          <View key={i} style={styles.featItem}>
+            <View style={[styles.featTile, { backgroundColor: f.color }]}>
+              <Ionicons name={f.icon as any} size={20} color={Colors.white} />
+            </View>
+            <Text style={styles.featLabel}>{f.label}</Text>
+          </View>
+        ))}
+      </Animated.View>
+    </View>
+  );
+}
 
 export default function PremiumScreen() {
   const { refreshUser } = useAuthStore();
@@ -163,18 +197,9 @@ export default function PremiumScreen() {
         ))}
       </View>
 
-      {/* Pro features showcase */}
+      {/* Pro features showcase — animated icons */}
       <Text style={styles.featHead}>Unlock 700+ Pro features</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featRow}>
-        {FEATURES.map((f) => (
-          <View key={f.label} style={styles.featChip}>
-            <View style={[styles.featTile, { backgroundColor: f.color }]}>
-              <Ionicons name={f.icon as any} size={16} color={Colors.white} />
-            </View>
-            <Text style={styles.featChipText}>{f.label}</Text>
-          </View>
-        ))}
-      </ScrollView>
+      <FeatureMarquee />
 
       {/* Trust line */}
       <Text style={styles.trust}>No ads · All premium tools · Cancel anytime</Text>
@@ -218,9 +243,7 @@ export default function PremiumScreen() {
       </TouchableOpacity>
       <Text style={styles.legal}>
         7-day free trial, then {plan.price}{plan.per}. Auto-renews until cancelled.{'\n'}
-        <Text style={styles.legalLink} onPress={() => router.push('/terms')}>Terms</Text>
-        {'   ·   '}
-        <Text style={styles.legalLink} onPress={() => router.push('/privacy-policy')}>Privacy</Text>
+        <Text style={styles.legalLink} onPress={() => router.push('/terms')}>Terms &amp; Conditions</Text>
       </Text>
     </SafeAreaView>
   );
@@ -250,11 +273,12 @@ const styles = StyleSheet.create({
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.dark.border },
   dotActive: { width: 18, backgroundColor: Colors.primary },
 
-  featHead: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_700Bold', color: Colors.text.primary, textAlign: 'center', marginBottom: 6 },
-  featRow: { gap: 8, paddingHorizontal: 16 },
-  featChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.dark.card, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 5, borderWidth: 0.5, borderColor: Colors.dark.border },
-  featTile: { width: 24, height: 24, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
-  featChipText: { fontSize: 11, fontFamily: 'Poppins_600SemiBold', color: Colors.text.primary, paddingRight: 2 },
+  featHead: { fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_700Bold', color: Colors.text.primary, textAlign: 'center', marginBottom: 8 },
+  marqueeWrap: { height: 64, overflow: 'hidden', justifyContent: 'center' },
+  marqueeRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  featItem: { width: 76, alignItems: 'center', gap: 5 },
+  featTile: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  featLabel: { fontSize: 10, fontFamily: 'Poppins_500Medium', color: Colors.text.secondary, textAlign: 'center' },
   trust: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: Colors.text.muted, textAlign: 'center', marginVertical: 6 },
 
   // Plans — vertical stack that fills the space below the carousel
