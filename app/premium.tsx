@@ -15,8 +15,10 @@ import { Layout } from '../constants/Layout';
 // Each page is full width; the portrait card sits centered inside it (so paging
 // snaps perfectly). The card is small enough that the whole screen fits with no
 // vertical scrolling.
-const SLIDE_W = Layout.window.width;
-const CARD_W = Math.round(Layout.window.width * 0.50);
+// Cap to a phone-width column so it looks/behaves the same on desktop & laptop.
+const COL_W = Math.min(Layout.window.width, 460);
+const SLIDE_W = COL_W;
+const CARD_W = Math.round(COL_W * 0.50);
 const CARD_H = Math.round(CARD_W * 1.5);
 
 // ── Hero cards — ONE portrait image per card ─────────────────────────────────
@@ -48,9 +50,9 @@ const FEATURES: { icon: string; label: string; color: string }[] = [
 
 interface Plan { id: string; label: string; price: string; per: string; sub: string; sticker?: string; badge?: string; best?: boolean; productId: string; }
 const PLANS: Plan[] = [
-  { id: 'weekly',  label: 'Weekly',   price: 'Ksh 500',   per: '/week',     sub: 'Billed every week',                                                              productId: 'gweno_premium_weekly' },
-  { id: 'quarter', label: '3 Months', price: 'Ksh 1,600', per: '/3 months', sub: 'About Ksh 123/wk, billed quarterly', sticker: 'SAVE 75%', badge: 'POPULAR',    productId: 'gweno_premium_quarter' },
-  { id: 'yearly',  label: 'Yearly',   price: 'Ksh 3,000', per: '/year',     sub: '7-day free trial · about Ksh 58/wk', sticker: 'SAVE 88%', badge: 'BEST VALUE', best: true, productId: 'gweno_premium_yearly' },
+  { id: 'weekly',  label: 'Weekly',   price: 'Ksh 213',   per: '/week',     sub: 'Billed every week',                                                              productId: 'gweno_premium_weekly' },
+  { id: 'quarter', label: '3 Months', price: 'Ksh 1,600', per: '/3 months', sub: 'About Ksh 123/wk, billed quarterly', sticker: 'SAVE 42%', badge: 'POPULAR',    productId: 'gweno_premium_quarter' },
+  { id: 'yearly',  label: 'Yearly',   price: 'Ksh 3,000', per: '/year',     sub: '7-day free trial · about Ksh 58/wk', sticker: 'SAVE 73%', badge: 'BEST VALUE', best: true, productId: 'gweno_premium_yearly' },
 ];
 
 // Slowly auto-scrolling row of feature icons (no cards — just icons + labels).
@@ -145,6 +147,7 @@ export default function PremiumScreen() {
 
   return (
     <SafeAreaView edges={['top', 'bottom']} style={styles.container}>
+      <View style={styles.col}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={{ padding: 4 }}>
@@ -245,12 +248,14 @@ export default function PremiumScreen() {
         7-day free trial, then {plan.price}{plan.per}. Auto-renews until cancelled.{'\n'}
         <Text style={styles.legalLink} onPress={() => router.push('/terms')}>Terms &amp; Conditions</Text>
       </Text>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.dark.background },
+  container: { flex: 1, backgroundColor: Colors.dark.background, alignItems: 'center' },
+  col: { width: COL_W, flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 8 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   brand: { fontSize: Layout.fontSize.xl, fontFamily: 'Poppins_700Bold', color: Colors.text.primary },
