@@ -60,21 +60,25 @@ export default function PremiumScreen() {
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Auto-advance the hero carousel to keep it lively.
-  useEffect(() => {
-    const t = setInterval(() => {
+  // Auto-advance the hero carousel — but pause while the user is swiping it.
+  const stopAuto = () => { if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; } };
+  const startAuto = () => {
+    stopAuto();
+    timerRef.current = setInterval(() => {
       setSlide((s) => {
         const next = (s + 1) % SLIDES.length;
         scrollRef.current?.scrollTo({ x: next * CARD_W, animated: true });
         return next;
       });
     }, 3500);
-    return () => clearInterval(t);
-  }, []);
+  };
+  useEffect(() => { startAuto(); return stopAuto; }, []);
 
   const onCarouselScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     setSlide(Math.round(e.nativeEvent.contentOffset.x / CARD_W));
+    startAuto(); // resume auto-play once the user's swipe settles
   };
 
   const plan = PLANS.find((p) => p.id === selectedPlan)!;
@@ -135,8 +139,11 @@ export default function PremiumScreen() {
           ref={scrollRef}
           horizontal
           pagingEnabled
+          decelerationRate="fast"
           showsHorizontalScrollIndicator={false}
+          onScrollBeginDrag={stopAuto}
           onMomentumScrollEnd={onCarouselScroll}
+          onScrollEndDrag={onCarouselScroll}
           style={{ marginTop: 8 }}
         >
           {SLIDES.map((s, i) => (
@@ -177,10 +184,16 @@ export default function PremiumScreen() {
           ))}
         </ScrollView>
 
-        {/* Dots */}
+        {/* Dots — tap to jump (works on desktop where drag-scroll doesn't) */}
         <View style={styles.dots}>
           {SLIDES.map((_, i) => (
-            <View key={i} style={[styles.dot, i === slide && styles.dotActive]} />
+            <TouchableOpacity
+              key={i}
+              onPress={() => { haptic.light(); stopAuto(); setSlide(i); scrollRef.current?.scrollTo({ x: i * CARD_W, animated: true }); startAuto(); }}
+              hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+            >
+              <View style={[styles.dot, i === slide && styles.dotActive]} />
+            </TouchableOpacity>
           ))}
         </View>
 
