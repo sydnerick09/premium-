@@ -5,6 +5,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from '@components/ui/SolidGradient';
+// Real gradient only for the photo label scrim (functional legibility fade).
+import { LinearGradient as Gradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -17,10 +19,10 @@ import { Layout } from '../../constants/Layout';
 // with your own photos at the SAME path/name (assets/explore/explore-1.jpg …4.jpg)
 // and they'll appear automatically.
 const FEATURED = [
-  { id: '1', title: 'AI Enhance',  sub: 'One-tap magic',     img: require('../../assets/explore/explore-1.jpg'), route: '/(tabs)/create' },
-  { id: '2', title: 'Filters',     sub: '100+ pro looks',    img: require('../../assets/explore/explore-2.jpg'), route: '/(tabs)/create' },
-  { id: '3', title: 'Collage',     sub: 'Combine photos',    img: require('../../assets/explore/explore-3.jpg'), route: '/editor/collage' },
-  { id: '4', title: 'Remove BG',   sub: 'Clean cut-outs',    img: require('../../assets/explore/explore-4.jpg'), route: '/(tabs)/create' },
+  { id: '1', title: 'AI Enhance',        sub: 'One-tap magic',  img: require('../../assets/explore/explore-1.jpg'), route: '/(tabs)/create' },
+  { id: '2', title: 'Filters',           sub: '100+ pro looks', img: require('../../assets/explore/explore-2.jpg'), route: '/(tabs)/create' },
+  { id: '3', title: 'Remove Background', sub: 'Clean cut-outs', img: require('../../assets/explore/explore-3.jpg'), route: '/(tabs)/create' },
+  { id: '4', title: 'Adjust',            sub: 'Fine-tune tones', img: require('../../assets/explore/explore-4.jpg'), route: '/(tabs)/create' },
 ];
 
 const TOOLS = [
@@ -71,7 +73,7 @@ export default function ExploreScreen() {
               style={styles.featCard}
             >
               <Image source={f.img} style={styles.featImg} resizeMode="cover" />
-              <View style={styles.featScrim} />
+              <Gradient colors={['transparent', 'rgba(0,0,0,0.78)']} style={styles.featScrim} pointerEvents="none" />
               <View style={styles.featText}>
                 <Text style={styles.featTitle}>{f.title}</Text>
                 <Text style={styles.featSub}>{f.sub}</Text>
@@ -138,15 +140,15 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: Layout.fontSize.lg, fontFamily: 'Poppins_700Bold', paddingHorizontal: 24, marginBottom: 12, marginTop: 8 },
   featGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 24, gap: 12, marginBottom: 20 },
   featCard: {
-    width: (Layout.window.width - 48 - 12) / 2, aspectRatio: 0.8,
-    borderRadius: Layout.radius.lg, overflow: 'hidden', backgroundColor: Colors.dark.card,
-    justifyContent: 'flex-end',
+    width: (Layout.window.width - 48 - 12) / 2, aspectRatio: 896 / 1200,
+    borderRadius: Layout.radius.xl, overflow: 'hidden', backgroundColor: Colors.dark.card,
+    justifyContent: 'flex-end', borderWidth: 0.5, borderColor: Colors.dark.border,
   },
   featImg: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
-  featScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.28)' },
+  featScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%' },
   featText: { padding: 12 },
   featTitle: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_700Bold', color: Colors.white },
-  featSub: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: 'rgba(255,255,255,0.9)', marginTop: 1 },
+  featSub: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: 'rgba(255,255,255,0.92)', marginTop: 1 },
   toolsGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 24, gap: 12, marginBottom: 20 },
   toolCard: { width: (Layout.window.width - 48 - 24) / 3, aspectRatio: 1, borderRadius: Layout.radius.lg, alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 6 },
   toolIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#0C1D17', alignItems: 'center', justifyContent: 'center' },
