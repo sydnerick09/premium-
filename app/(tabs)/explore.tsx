@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, FlatList,
+  TouchableOpacity, FlatList, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from '@components/ui/SolidGradient';
@@ -11,6 +11,17 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { haptic } from '../../utils/haptics';
 import { Colors } from '../../constants/Colors';
 import { Layout } from '../../constants/Layout';
+
+// ── Featured image cards ──────────────────────────────────────────────────────
+// Each card shows a real image. The files below are PLACEHOLDERS — replace them
+// with your own photos at the SAME path/name (assets/explore/explore-1.jpg …4.jpg)
+// and they'll appear automatically.
+const FEATURED = [
+  { id: '1', title: 'AI Enhance',  sub: 'One-tap magic',     img: require('../../assets/explore/explore-1.jpg'), route: '/(tabs)/create' },
+  { id: '2', title: 'Filters',     sub: '100+ pro looks',    img: require('../../assets/explore/explore-2.jpg'), route: '/(tabs)/create' },
+  { id: '3', title: 'Collage',     sub: 'Combine photos',    img: require('../../assets/explore/explore-3.jpg'), route: '/editor/collage' },
+  { id: '4', title: 'Remove BG',   sub: 'Clean cut-outs',    img: require('../../assets/explore/explore-4.jpg'), route: '/(tabs)/create' },
+];
 
 const TOOLS = [
   { id: 'qr',    name: 'QR Scanner',   icon: 'qr-code-outline',         route: '/tools/qr'           },
@@ -50,6 +61,25 @@ export default function ExploreScreen() {
         </View>
       </SafeAreaView>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        <Text style={[styles.sectionTitle, { color: textPrimary }]}>Featured</Text>
+        <View style={styles.featGrid}>
+          {FEATURED.map((f) => (
+            <TouchableOpacity
+              key={f.id}
+              activeOpacity={0.9}
+              onPress={() => { haptic.light(); router.push(f.route as any); }}
+              style={styles.featCard}
+            >
+              <Image source={f.img} style={styles.featImg} resizeMode="cover" />
+              <View style={styles.featScrim} />
+              <View style={styles.featText}>
+                <Text style={styles.featTitle}>{f.title}</Text>
+                <Text style={styles.featSub}>{f.sub}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+
         <Text style={[styles.sectionTitle, { color: textPrimary }]}>Tools</Text>
         <View style={styles.toolsGrid}>
           {TOOLS.map((t) => (
@@ -106,6 +136,17 @@ const styles = StyleSheet.create({
   title: { fontSize: Layout.fontSize['3xl'], fontFamily: 'Poppins_700Bold' },
   scroll: { paddingTop: 8 },
   sectionTitle: { fontSize: Layout.fontSize.lg, fontFamily: 'Poppins_700Bold', paddingHorizontal: 24, marginBottom: 12, marginTop: 8 },
+  featGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 24, gap: 12, marginBottom: 20 },
+  featCard: {
+    width: (Layout.window.width - 48 - 12) / 2, aspectRatio: 1.25,
+    borderRadius: Layout.radius.lg, overflow: 'hidden', backgroundColor: Colors.dark.card,
+    justifyContent: 'flex-end',
+  },
+  featImg: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
+  featScrim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.28)' },
+  featText: { padding: 12 },
+  featTitle: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_700Bold', color: Colors.white },
+  featSub: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: 'rgba(255,255,255,0.9)', marginTop: 1 },
   toolsGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 24, gap: 12, marginBottom: 20 },
   toolCard: { width: (Layout.window.width - 48 - 24) / 3, aspectRatio: 1, borderRadius: Layout.radius.lg, alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 6 },
   toolIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#0C1D17', alignItems: 'center', justifyContent: 'center' },
