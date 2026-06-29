@@ -191,7 +191,7 @@ export default function HomeScreen() {
               onPress={() => openWithImage(item.route)}
               style={styles.exploreCard}
             >
-              <Image source={item.img} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+              <Image source={item.img} style={StyleSheet.absoluteFillObject} resizeMode="contain" />
               <View style={styles.exploreScrim} pointerEvents="none" />
               <View style={styles.exploreOverlay}>
                 <Ionicons name={item.icon as any} size={26} color={Colors.white} />
@@ -346,8 +346,10 @@ const styles = StyleSheet.create({
   exploreUnderline: { width: 28, height: 3, borderRadius: 2, backgroundColor: Colors.primary, marginTop: 4 },
   exploreRow: { gap: 12, paddingHorizontal: 20, paddingBottom: 8 },
   exploreCard: {
-    // Exact 896:1200 image ratio so the photo fits with NO cropping.
-    width: 150, height: Math.round(150 * 1200 / 896), borderRadius: Layout.radius.lg, overflow: 'hidden',
+    // Your images are 150x200 (3:4). Card matches exactly + 'contain' so the
+    // WHOLE image is always visible, never cropped.
+    width: 150, height: 200, borderRadius: Layout.radius.lg, overflow: 'hidden',
+    backgroundColor: Colors.dark.card,
   },
   exploreScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%', backgroundColor: 'rgba(0,0,0,0.45)' },
   exploreOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'flex-start', justifyContent: 'flex-end', padding: 14, gap: 6 },
