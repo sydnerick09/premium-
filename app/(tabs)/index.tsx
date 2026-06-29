@@ -31,10 +31,10 @@ const TOOLS_HUB = [
 
 // ─── Explore showcase cards ───────────────────────────────────────────────────
 const EXPLORE = [
-  { id: 'enhance',  name: 'AI Enhance', icon: 'flash',        gradient: Colors.gradients.primary,                     route: '/editor/ai-enhance' },
-  { id: 'filters',  name: 'Filters',    icon: 'color-filter', gradient: Colors.gradients.accent,                      route: '/editor/filters'    },
-  { id: 'bg',       name: 'Remove BG',  icon: 'cut',          gradient: ['#EF4444', '#F97316'] as [string, string],   route: '/editor/bg-remove'  },
-  { id: 'adjust',   name: 'Adjust',     icon: 'options',      gradient: ['#10B981', '#0891B2'] as [string, string],   route: '/editor/adjustments'},
+  { id: 'enhance',  name: 'AI Enhance', icon: 'flash',        img: require('../../assets/explore/explore-1.jpg'), route: '/editor/ai-enhance' },
+  { id: 'filters',  name: 'Filters',    icon: 'color-filter', img: require('../../assets/explore/explore-2.jpg'), route: '/editor/filters'    },
+  { id: 'bg',       name: 'Remove BG',  icon: 'cut',          img: require('../../assets/explore/explore-3.jpg'), route: '/editor/bg-remove'  },
+  { id: 'adjust',   name: 'Adjust',     icon: 'options',      img: require('../../assets/explore/explore-4.jpg'), route: '/editor/adjustments'},
 ];
 
 export default function HomeScreen() {
@@ -191,7 +191,8 @@ export default function HomeScreen() {
               onPress={() => openWithImage(item.route)}
               style={styles.exploreCard}
             >
-              <LinearGradient colors={item.gradient as [string, string]} style={StyleSheet.absoluteFillObject} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+              <Image source={item.img} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+              <View style={styles.exploreScrim} pointerEvents="none" />
               <View style={styles.exploreOverlay}>
                 <Ionicons name={item.icon as any} size={26} color={Colors.white} />
                 <Text style={styles.exploreCardLabel}>{item.name}</Text>
@@ -347,6 +348,7 @@ const styles = StyleSheet.create({
   exploreCard: {
     width: 130, height: 180, borderRadius: Layout.radius.lg, overflow: 'hidden',
   },
+  exploreScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%', backgroundColor: 'rgba(0,0,0,0.45)' },
   exploreOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'flex-start', justifyContent: 'flex-end', padding: 14, gap: 6 },
   exploreCardLabel: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_600SemiBold', color: Colors.white },
 
