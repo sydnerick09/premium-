@@ -31,10 +31,10 @@ const TOOLS_HUB = [
 
 // ─── Explore showcase cards ───────────────────────────────────────────────────
 const EXPLORE = [
-  { id: 'enhance',  name: 'AI Enhance', icon: 'flash',        img: require('../../assets/explore/explore-1.jpg'), route: '/editor/ai-enhance' },
-  { id: 'filters',  name: 'Filters',    icon: 'color-filter', img: require('../../assets/explore/explore-2.jpg'), route: '/editor/filters'    },
-  { id: 'bg',       name: 'Remove BG',  icon: 'cut',          img: require('../../assets/explore/explore-3.jpg'), route: '/editor/bg-remove'  },
-  { id: 'adjust',   name: 'Adjust',     icon: 'options',      img: require('../../assets/explore/explore-4.jpg'), route: '/editor/adjustments'},
+  { id: 'enhance',  name: 'AI Enhance', icon: 'flash',        gradient: Colors.gradients.primary,                     route: '/editor/ai-enhance' },
+  { id: 'filters',  name: 'Filters',    icon: 'color-filter', gradient: Colors.gradients.accent,                      route: '/editor/filters'    },
+  { id: 'bg',       name: 'Remove BG',  icon: 'cut',          gradient: ['#EF4444', '#F97316'] as [string, string],   route: '/editor/bg-remove'  },
+  { id: 'adjust',   name: 'Adjust',     icon: 'options',      gradient: ['#10B981', '#0891B2'] as [string, string],   route: '/editor/adjustments'},
 ];
 
 export default function HomeScreen() {
@@ -191,10 +191,9 @@ export default function HomeScreen() {
               onPress={() => openWithImage(item.route)}
               style={styles.exploreCard}
             >
-              <Image source={item.img} style={StyleSheet.absoluteFillObject} resizeMode="contain" />
-              <View style={styles.exploreScrim} pointerEvents="none" />
+              <LinearGradient colors={item.gradient as [string, string]} style={StyleSheet.absoluteFillObject} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
               <View style={styles.exploreOverlay}>
-                <Ionicons name={item.icon as any} size={22} color={Colors.white} style={styles.exploreIcon} />
+                <Ionicons name={item.icon as any} size={26} color={Colors.white} />
                 <Text style={styles.exploreCardLabel}>{item.name}</Text>
               </View>
             </TouchableOpacity>
@@ -346,18 +345,10 @@ const styles = StyleSheet.create({
   exploreUnderline: { width: 28, height: 3, borderRadius: 2, backgroundColor: Colors.primary, marginTop: 4 },
   exploreRow: { gap: 12, paddingHorizontal: 20, paddingBottom: 8 },
   exploreCard: {
-    // Your images are 150x200 (3:4). Card matches exactly + 'contain' so the
-    // WHOLE image is always visible, never cropped.
-    width: 150, height: 200, borderRadius: Layout.radius.lg, overflow: 'hidden',
-    backgroundColor: Colors.dark.card,
+    width: 130, height: 180, borderRadius: Layout.radius.lg, overflow: 'hidden',
   },
-  exploreScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '28%', backgroundColor: 'rgba(0,0,0,0.38)' },
-  exploreIcon: { textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
-  exploreOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'flex-start', justifyContent: 'flex-end', padding: 10, gap: 4 },
-  exploreCardLabel: {
-    fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_700Bold', color: Colors.white,
-    textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
-  },
+  exploreOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'flex-start', justifyContent: 'flex-end', padding: 14, gap: 6 },
+  exploreCardLabel: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_600SemiBold', color: Colors.white },
 
   // Recent
   sectionHeaderRow: {
