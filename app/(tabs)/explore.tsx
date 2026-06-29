@@ -1,12 +1,10 @@
 import React from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, FlatList, Image,
+  TouchableOpacity, FlatList, ImageBackground,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from '@components/ui/SolidGradient';
-// Real gradient only for the photo label scrim (functional legibility fade).
-import { LinearGradient as Gradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -76,12 +74,13 @@ export default function ExploreScreen() {
               onPress={() => { haptic.light(); router.push(f.route as any); }}
               style={styles.featCard}
             >
-              <Image source={f.img} style={styles.featImg} resizeMode="cover" />
-              <Gradient colors={['transparent', 'rgba(0,0,0,0.78)']} style={styles.featScrim} pointerEvents="none" />
-              <View style={styles.featText}>
-                <Text style={styles.featTitle}>{f.title}</Text>
-                <Text style={styles.featSub}>{f.sub}</Text>
-              </View>
+              <ImageBackground source={f.img} style={styles.featImg} imageStyle={styles.featImgInner} resizeMode="cover">
+                <View style={styles.featScrim} pointerEvents="none" />
+                <View style={styles.featText}>
+                  <Text style={styles.featTitle}>{f.title}</Text>
+                  <Text style={styles.featSub}>{f.sub}</Text>
+                </View>
+              </ImageBackground>
             </TouchableOpacity>
           ))}
         </View>
@@ -148,9 +147,10 @@ const styles = StyleSheet.create({
     borderRadius: Layout.radius.xl, overflow: 'hidden', backgroundColor: Colors.dark.card,
     borderWidth: 0.5, borderColor: Colors.dark.border,
   },
-  featImg: { width: '100%', height: '100%' },
-  featScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%' },
-  featText: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: 12 },
+  featImg: { width: '100%', height: '100%', justifyContent: 'flex-end' },
+  featImgInner: { borderRadius: Layout.radius.xl },
+  featScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '50%', backgroundColor: 'rgba(0,0,0,0.45)' },
+  featText: { padding: 12 },
   featTitle: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_700Bold', color: Colors.white },
   featSub: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: 'rgba(255,255,255,0.92)', marginTop: 1 },
   toolsGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 24, gap: 12, marginBottom: 20 },
