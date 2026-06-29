@@ -194,7 +194,7 @@ export default function HomeScreen() {
               <Image source={item.img} style={StyleSheet.absoluteFillObject} resizeMode="contain" />
               <View style={styles.exploreScrim} pointerEvents="none" />
               <View style={styles.exploreOverlay}>
-                <Ionicons name={item.icon as any} size={26} color={Colors.white} />
+                <Ionicons name={item.icon as any} size={22} color={Colors.white} style={styles.exploreIcon} />
                 <Text style={styles.exploreCardLabel}>{item.name}</Text>
               </View>
             </TouchableOpacity>
@@ -351,9 +351,13 @@ const styles = StyleSheet.create({
     width: 150, height: 200, borderRadius: Layout.radius.lg, overflow: 'hidden',
     backgroundColor: Colors.dark.card,
   },
-  exploreScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%', backgroundColor: 'rgba(0,0,0,0.45)' },
-  exploreOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'flex-start', justifyContent: 'flex-end', padding: 14, gap: 6 },
-  exploreCardLabel: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_600SemiBold', color: Colors.white },
+  exploreScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '28%', backgroundColor: 'rgba(0,0,0,0.38)' },
+  exploreIcon: { textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+  exploreOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'flex-start', justifyContent: 'flex-end', padding: 10, gap: 4 },
+  exploreCardLabel: {
+    fontSize: Layout.fontSize.sm, fontFamily: 'Poppins_700Bold', color: Colors.white,
+    textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
+  },
 
   // Recent
   sectionHeaderRow: {
