@@ -554,6 +554,29 @@ export default function EditorScreen() {
   }
   const corners = cornersRef.current;
 
+  // Edge resize — drag any side to adjust just that edge (free crop).
+  const edgesRef = useRef<Record<string, any> | null>(null);
+  if (!edgesRef.current) {
+    const makeEdge = (edge: 't' | 'b' | 'l' | 'r') =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderGrant: () => { gestureStart.current = cropRectRef.current; },
+        onPanResponderMove: (_, g) => {
+          const s = gestureStart.current;
+          if (!s) return;
+          let { x, y, w, h } = s;
+          if (edge === 't')      { y = s.y + g.dy; h = s.h - g.dy; if (h < 40) { h = 40; y = s.y + s.h - 40; } }
+          else if (edge === 'b') { h = s.h + g.dy; }
+          else if (edge === 'l') { x = s.x + g.dx; w = s.w - g.dx; if (w < 40) { w = 40; x = s.x + s.w - 40; } }
+          else                   { w = s.w + g.dx; }
+          setCropRect(clampCrop({ x, y, w, h }));
+        },
+      });
+    edgesRef.current = { t: makeEdge('t'), b: makeEdge('b'), l: makeEdge('l'), r: makeEdge('r') };
+  }
+  const edges = edgesRef.current;
+
   const handleApplyCrop = useCallback(async () => {
     if (!currentUri || !dispRect || !cropRect) { setIsCropping(false); return; }
     haptic.medium();
@@ -1139,6 +1162,19 @@ export default function EditorScreen() {
             <View style={[styles.gridLine, styles.gridLineV2]} pointerEvents="none" />
             <View style={[styles.gridLine, styles.gridLineH1]} pointerEvents="none" />
             <View style={[styles.gridLine, styles.gridLineH2]} pointerEvents="none" />
+            {/* Edge drag handles (drag any side) */}
+            <View style={[styles.edgeHandle, styles.edge_t]} {...edges.t.panHandlers}>
+              <View style={styles.edgeBarH} pointerEvents="none" />
+            </View>
+            <View style={[styles.edgeHandle, styles.edge_b]} {...edges.b.panHandlers}>
+              <View style={styles.edgeBarH} pointerEvents="none" />
+            </View>
+            <View style={[styles.edgeHandle, styles.edge_l]} {...edges.l.panHandlers}>
+              <View style={styles.edgeBarV} pointerEvents="none" />
+            </View>
+            <View style={[styles.edgeHandle, styles.edge_r]} {...edges.r.panHandlers}>
+              <View style={styles.edgeBarV} pointerEvents="none" />
+            </View>
             {/* Corner drag handles */}
             <View style={[styles.cropHandle, styles.handle_tl]} {...corners.tl.panHandlers}>
               <View style={[styles.cornerMarker, styles.corner_tl]} pointerEvents="none" />
@@ -1545,13 +1581,21 @@ const styles = StyleSheet.create({
   gridLineH1:  { top: '33.3%', left: 0, right: 0, height: 1 },
   gridLineH2:  { top: '66.6%', left: 0, right: 0, height: 1 },
   cornerMarker: {
-    position: 'absolute', width: 20, height: 20,
-    borderColor: Colors.white, borderWidth: 3,
+    position: 'absolute', width: 22, height: 22,
+    borderColor: Colors.primary, borderWidth: 4,
   },
   corner_tl: { top: 0,  left: 0,  borderRightWidth: 0, borderBottomWidth: 0 },
   corner_tr: { top: 0,  right: 0, borderLeftWidth: 0,  borderBottomWidth: 0 },
   corner_bl: { bottom: 0, left: 0,  borderRightWidth: 0, borderTopWidth: 0 },
   corner_br: { bottom: 0, right: 0, borderLeftWidth: 0,  borderTopWidth: 0 },
+  // Edge (side) drag handles
+  edgeHandle: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  edge_t: { top: -12, left: 28, right: 28, height: 24 },
+  edge_b: { bottom: -12, left: 28, right: 28, height: 24 },
+  edge_l: { left: -12, top: 28, bottom: 28, width: 24 },
+  edge_r: { right: -12, top: 28, bottom: 28, width: 24 },
+  edgeBarH: { width: 30, height: 4, borderRadius: 2, backgroundColor: Colors.white },
+  edgeBarV: { width: 4, height: 30, borderRadius: 2, backgroundColor: Colors.white },
 
   textOverlay:        { position: 'absolute', top: 0, left: 0, padding: 6 },
   selectionBox:       { position: 'absolute', top: -6, left: -6, right: -6, bottom: -6, borderWidth: 1, borderColor: Colors.primary, borderStyle: 'dashed', borderRadius: 8 },
