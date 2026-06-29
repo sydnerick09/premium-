@@ -640,6 +640,22 @@ class ImageProcessorWeb {
         const len = h * (0.12 + ((Math.sin(i * 3.1) * 0.5 + 0.5) * 0.45));
         tctx.drawImage(img, x, 0, cw, 1, x, 0, cw, len);
       }
+    } else if (effect === 'hdr') {
+      // HDR: punchy tone-mapped look — boost global contrast/saturation, then a
+      // soft-light local-contrast (clarity) pass to lift detail in shadows.
+      (tctx as any).filter = 'contrast(1.18) saturate(1.35) brightness(1.04)';
+      tctx.drawImage(img, 0, 0, w, h);
+      (tctx as any).filter = 'none';
+      const blurPx = Math.max(2, Math.round(Math.min(w, h) / 90));
+      const b = newCanvas(w, h);
+      (b.ctx as any).filter = `blur(${blurPx}px)`;
+      b.ctx.drawImage(img, 0, 0, w, h);
+      (b.ctx as any).filter = 'none';
+      tctx.globalCompositeOperation = 'soft-light';
+      tctx.globalAlpha = 0.55;
+      tctx.drawImage(b.canvas, 0, 0);
+      tctx.globalAlpha = 1;
+      tctx.globalCompositeOperation = 'source-over';
     } else {
       const filters: Record<string, string> = {
         negative: 'invert(1)',

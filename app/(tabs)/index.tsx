@@ -31,10 +31,10 @@ const TOOLS_HUB = [
 
 // ─── Explore showcase cards ───────────────────────────────────────────────────
 const EXPLORE = [
-  { id: 'enhance',  name: 'AI Enhance', icon: 'flash',        gradient: Colors.gradients.primary,                     route: '/editor/ai-enhance' },
-  { id: 'filters',  name: 'Filters',    icon: 'color-filter', gradient: Colors.gradients.accent,                      route: '/editor/filters'    },
-  { id: 'bg',       name: 'Remove BG',  icon: 'cut',          gradient: ['#EF4444', '#F97316'] as [string, string],   route: '/editor/bg-remove'  },
-  { id: 'adjust',   name: 'Adjust',     icon: 'options',      gradient: ['#10B981', '#0891B2'] as [string, string],   route: '/editor/adjustments'},
+  { id: 'enhance',  name: 'AI Enhance', icon: 'flash',        image: require('../../assets/explore/enhance.jpg'),   gradient: Colors.gradients.primary,                     route: '/editor/ai-enhance' },
+  { id: 'filters',  name: 'Filters',    icon: 'color-filter', image: require('../../assets/explore/filters.jpg'),   gradient: Colors.gradients.accent,                      route: '/editor/filters'    },
+  { id: 'bg',       name: 'Remove BG',  icon: 'cut',          image: require('../../assets/explore/remove-bg.jpg'), gradient: ['#EF4444', '#F97316'] as [string, string],   route: '/editor/bg-remove'  },
+  { id: 'adjust',   name: 'Adjust',     icon: 'options',      image: require('../../assets/explore/adjust.jpg'),    gradient: ['#10B981', '#0891B2'] as [string, string],   route: '/editor/adjustments'},
 ];
 
 export default function HomeScreen() {
@@ -191,10 +191,15 @@ export default function HomeScreen() {
               onPress={() => openWithImage(item.route)}
               style={styles.exploreCard}
             >
+              {/* Colored fallback (shows if the photo is missing) */}
               <LinearGradient colors={item.gradient as [string, string]} style={StyleSheet.absoluteFillObject} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
+              {/* Showcase photo — fills the card, cropped to fit, no distortion */}
+              <Image source={item.image} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+              {/* Subtle bottom scrim so the label stays readable over any photo */}
+              <View style={styles.exploreScrim} pointerEvents="none" />
               <View style={styles.exploreOverlay}>
-                <Ionicons name={item.icon as any} size={26} color={Colors.white} />
-                <Text style={styles.exploreCardLabel}>{item.name}</Text>
+                <Ionicons name={item.icon as any} size={26} color={Colors.white} style={styles.exploreIconShadow} />
+                <Text style={[styles.exploreCardLabel, styles.exploreTextShadow]}>{item.name}</Text>
               </View>
             </TouchableOpacity>
           ))}
@@ -348,7 +353,10 @@ const styles = StyleSheet.create({
     width: 130, height: 180, borderRadius: Layout.radius.lg, overflow: 'hidden',
   },
   exploreOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'flex-start', justifyContent: 'flex-end', padding: 14, gap: 6 },
+  exploreScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 64, backgroundColor: 'rgba(0,0,0,0.38)' },
   exploreCardLabel: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_600SemiBold', color: Colors.white },
+  exploreTextShadow: { textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
+  exploreIconShadow: { textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 },
 
   // Recent
   sectionHeaderRow: {

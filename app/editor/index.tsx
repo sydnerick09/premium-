@@ -21,6 +21,7 @@ import { FilterCatalog } from '../../constants/FilterCatalog';
 import { haptic } from '../../utils/haptics';
 import { Colors } from '../../constants/Colors';
 import { Layout } from '../../constants/Layout';
+import { defaultAdjustments, defaultBeautyValues } from '../../types';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
@@ -66,7 +67,7 @@ const TOOLS = [
 //       submenu → open a nested sheet | pro → Pro (coming soon) | soon → coming soon
 type SubKind =
   | 'route' | 'tab' | 'crop' | 'blur' | 'fit' | 'enhance' | 'makeup' | 'beautyfx'
-  | 'files' | 'camera' | 'restore' | 'submenu' | 'pro' | 'soon' | 'addText';
+  | 'files' | 'camera' | 'restore' | 'submenu' | 'pro' | 'soon' | 'addText' | 'resize';
 type SubItem = { id: string; label: string; icon?: string; kind: SubKind; target?: string; sub?: string };
 
 const SUBMENUS: Record<string, { title: string; items: SubItem[] }> = {
@@ -83,7 +84,7 @@ const SUBMENUS: Record<string, { title: string; items: SubItem[] }> = {
   shape: { title: 'Shape', items: [
     { id: 'reshape', label: 'Reshape', icon: 'body-outline',    kind: 'beautyfx' },
     { id: 'details', label: 'Details', icon: 'sparkles-outline', kind: 'route', target: '/editor/beauty' },
-    { id: 'resize',  label: 'Resize',  icon: 'resize-outline',  kind: 'soon' },
+    { id: 'resize',  label: 'Resize',  icon: 'resize-outline',  kind: 'resize' },
     { id: 'restore', label: 'Restore', icon: 'refresh-outline', kind: 'restore' },
   ]},
   remove: { title: 'Remove', items: [
@@ -118,6 +119,7 @@ const SUBMENUS: Record<string, { title: string; items: SubItem[] }> = {
 const SUB_PARENT: Record<string, string> = { shape: 'beautify' };
 
 const EFFECTS = [
+  { id: 'hdr',      label: 'HDR',      emoji: '🌄' },
   { id: 'lightfix', label: 'Light Fix', emoji: '🔆' },
   { id: 'cartoon',  label: 'Cartoon',  emoji: '🖼️' },
   { id: 'sketch',   label: 'Sketch',   emoji: '✏️' },
@@ -333,6 +335,12 @@ export default function EditorScreen() {
   const [blurType, setBlurType]           = useState<string>('circle');
   const [blurCount, setBlurCount]         = useState(8);   // motion: streak count
   const [blurOpacity, setBlurOpacity]     = useState(100); // motion: blur opacity
+  // Before/After compare — true while the compare button is held down.
+  const [comparing, setComparing]         = useState(false);
+  // Resize modal (target longest edge in px; result keeps aspect ratio)
+  const [showResize, setShowResize]       = useState(false);
+  const [resizeNatural, setResizeNatural] = useState({ width: 0, height: 0 });
+  const [resizeLong, setResizeLong]       = useState(0);
   // Tool sub-menu bottom sheet (e.g. Beautify, Remove, Blur, Add, Cut Out)
   const [subTool, setSubTool]             = useState<string | null>(null);
   // Lightweight, auto-dismissing toast (non-blocking action feedback)
@@ -682,6 +690,46 @@ export default function EditorScreen() {
     showToast('Restored original');
   }, [project?.originalImageUri, setCurrentUri, pushHistory, showToast]);
 
+  // ── Resize: scale the image down to a chosen longest edge (keeps aspect) ─────
+  const openResize = useCallback(async () => {
+    if (!currentUri) return;
+    haptic.light();
+    try {
+      const s = await imageProcessor.getImageSize(currentUri);
+      setResizeNatural(s);
+      setResizeLong(Math.max(s.width, s.height));
+      setShowResize(true);
+    } catch {
+      showToast('Could not read image size');
+    }
+  }, [currentUri, showToast]);
+
+  // Resulting dimensions for the current target longest edge (aspect preserved).
+  const resizeDims = useMemo(() => {
+    const { width, height } = resizeNatural;
+    if (!width || !height) return { width: 0, height: 0 };
+    const long = Math.max(width, height) || 1;
+    const k = resizeLong / long;
+    return { width: Math.max(1, Math.round(width * k)), height: Math.max(1, Math.round(height * k)) };
+  }, [resizeNatural, resizeLong]);
+
+  const applyResize = useCallback(async () => {
+    if (!currentUri || !resizeDims.width) { setShowResize(false); return; }
+    setShowResize(false);
+    haptic.medium();
+    setProcessing(true, 'Resizing…');
+    try {
+      const uri = await imageProcessor.resize(currentUri, { width: resizeDims.width, height: resizeDims.height });
+      setCurrentUri(uri);
+      pushHistory(`Resized ${resizeDims.width}×${resizeDims.height}`, uri);
+      haptic.success();
+      showToast(`Resized to ${resizeDims.width}×${resizeDims.height}`);
+    } catch (e: any) {
+      haptic.error();
+      Alert.alert('Resize failed', e?.message ?? 'Please try again.');
+    } finally { setProcessing(false); }
+  }, [currentUri, resizeDims, showToast]);
+
   // ── Sub-menu item dispatch ────────────────────────────────────────────────────
   const handleSubItem = useCallback(async (item: SubItem) => {
     switch (item.kind) {
@@ -696,6 +744,7 @@ export default function EditorScreen() {
       case 'camera':  setSubTool(null); await importPhoto('camera'); break;
       case 'restore': setSubTool(null); restoreOriginal(); break;
       case 'blur':    setSubTool(null); haptic.light(); setBlurType(item.id); setBlurStrength(14); setShowBlur(true); break;
+      case 'resize':  setSubTool(null); await openResize(); break;
       case 'submenu': haptic.selection(); if (item.sub) setSubTool(item.sub); break;
       case 'pro':     haptic.light(); showToast(`${item.label} — Pro (coming soon)`); break;
       case 'soon':    haptic.light(); showToast(`${item.label} — coming soon`); break;
@@ -1117,6 +1166,19 @@ export default function EditorScreen() {
           <TouchableOpacity onPress={() => { if (canRedo()) { redo(); haptic.light(); showToast('Redone'); } }} disabled={!canRedo()} style={styles.iconBtn}>
             <Ionicons name="arrow-redo-outline" size={22} color={canRedo() ? Colors.text.primary : Colors.text.muted} />
           </TouchableOpacity>
+          {/* Hold to compare with the original (before/after) */}
+          <TouchableOpacity
+            onPressIn={() => { if (project?.originalImageUri) { setComparing(true); haptic.selection(); } }}
+            onPressOut={() => setComparing(false)}
+            disabled={!project?.originalImageUri}
+            style={styles.iconBtn}
+          >
+            <Ionicons
+              name={comparing ? 'eye' : 'eye-outline'}
+              size={22}
+              color={!project?.originalImageUri ? Colors.text.muted : comparing ? Colors.primary : Colors.text.primary}
+            />
+          </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/editor/export')} style={styles.iconBtn}>
             <Ionicons name="share-outline" size={22} color={Colors.text.primary} />
           </TouchableOpacity>
@@ -1137,17 +1199,36 @@ export default function EditorScreen() {
         })}
       >
         {displayUri ? (
-          <EditorImage
-            key={displayUri}
-            uri={displayUri}
-            adjustments={adjustments}
-            filter={activeFilter}
-            filterIntensity={filterIntensity}
-            beauty={beautyValues}
-          />
+          comparing && project?.originalImageUri ? (
+            // Before/After: pristine original with no edits applied.
+            <EditorImage
+              key="compare-original"
+              uri={project.originalImageUri}
+              adjustments={defaultAdjustments}
+              filter={null}
+              filterIntensity={0}
+              beauty={defaultBeautyValues}
+            />
+          ) : (
+            <EditorImage
+              key={displayUri}
+              uri={displayUri}
+              adjustments={adjustments}
+              filter={activeFilter}
+              filterIntensity={filterIntensity}
+              beauty={beautyValues}
+            />
+          )
         ) : (
           <View style={styles.emptyCanvas}>
             <Ionicons name="image-outline" size={48} color={Colors.text.muted} />
+          </View>
+        )}
+
+        {/* Before/After badge */}
+        {comparing && project?.originalImageUri && (
+          <View style={styles.compareBadge} pointerEvents="none">
+            <Text style={styles.compareBadgeText}>Before</Text>
           </View>
         )}
 
@@ -1452,6 +1533,65 @@ export default function EditorScreen() {
         </View>
       )}
 
+      {/* Resize modal — scale the photo down to a chosen longest edge */}
+      {showResize && (
+        <View style={styles.aiFamilyOverlay}>
+          <View style={styles.aiFamilyModal}>
+            <LinearGradient colors={Colors.gradients.primary} style={styles.aiModalHeader}>
+              <Ionicons name="resize" size={22} color={Colors.white} />
+              <Text style={styles.aiModalTitle}>Resize Image</Text>
+              <Text style={styles.aiModalSubtitle}>Scale the photo to a smaller size. Aspect ratio is kept.</Text>
+            </LinearGradient>
+            <View style={styles.aiModalBody}>
+              <View style={styles.effectBarRow}>
+                <Text style={styles.effectName}>New size</Text>
+                <Text style={[styles.effectName, { color: Colors.primary }]}>{resizeDims.width} × {resizeDims.height}</Text>
+              </View>
+              <AppSlider
+                style={{ width: '100%', height: 36 }}
+                minimumValue={100}
+                maximumValue={Math.max(100, resizeNatural.width, resizeNatural.height)}
+                step={1}
+                value={resizeLong}
+                onValueChange={(v) => setResizeLong(v)}
+                minimumTrackTintColor={Colors.primary}
+                maximumTrackTintColor={Colors.dark.border}
+                thumbTintColor={Colors.white}
+              />
+              <View style={styles.resizePresetRow}>
+                {[720, 1080, 1920, 2560]
+                  .filter((p) => p <= Math.max(resizeNatural.width, resizeNatural.height))
+                  .map((p) => (
+                    <TouchableOpacity
+                      key={p}
+                      onPress={() => { haptic.selection(); setResizeLong(p); }}
+                      style={[styles.resizePreset, Math.round(resizeLong) === p && styles.resizePresetActive]}
+                    >
+                      <Text style={[styles.resizePresetText, Math.round(resizeLong) === p && { color: Colors.primary }]}>{p}px</Text>
+                    </TouchableOpacity>
+                  ))}
+                <TouchableOpacity
+                  onPress={() => { haptic.selection(); setResizeLong(Math.max(resizeNatural.width, resizeNatural.height)); }}
+                  style={styles.resizePreset}
+                >
+                  <Text style={styles.resizePresetText}>Original</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.aiModalFooter}>
+                <TouchableOpacity onPress={() => setShowResize(false)} style={styles.aiModalCancel}>
+                  <Text style={styles.aiModalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={applyResize} style={styles.aiModalGenerate}>
+                  <LinearGradient colors={Colors.gradients.primary} style={styles.aiModalGenerateGradient}>
+                    <Text style={styles.aiModalGenerateText}>Apply Resize</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      )}
+
       {/* Tool sub-menu sheet (Beautify / Remove / Text / Blur / Add / Cut Out …) */}
       {subTool && SUBMENUS[subTool] && !isCropping && !showAiFamily && !showLogo && !showBlur && (
         <View style={styles.subSheet}>
@@ -1500,7 +1640,7 @@ export default function EditorScreen() {
       })()}
 
       {/* Bottom panel — hidden during crop / sheets / text editing */}
-      {!isCropping && !showAiFamily && !showLogo && !showBlur && !subTool && !selectedTextId && (
+      {!isCropping && !showAiFamily && !showLogo && !showBlur && !showResize && !subTool && !selectedTextId && (
         <View style={styles.bottomPanel}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsRow}>
             {TOOL_TABS.map((tab) => (
@@ -1549,6 +1689,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0.5, borderBottomColor: Colors.dark.border,
   },
   iconBtn:            { padding: 8 },
+  compareBadge: {
+    position: 'absolute', top: 12, alignSelf: 'center',
+    backgroundColor: 'rgba(10,10,15,0.78)',
+    paddingHorizontal: 14, paddingVertical: 6, borderRadius: Layout.radius.full,
+    borderWidth: 0.5, borderColor: Colors.dark.border,
+  },
+  compareBadgeText:   { color: Colors.white, fontFamily: 'Poppins_600SemiBold', fontSize: Layout.fontSize.sm, letterSpacing: 1 },
+  resizePresetRow:    { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  resizePreset: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: Layout.radius.full,
+    borderWidth: 1, borderColor: Colors.dark.border, backgroundColor: Colors.dark.surface,
+  },
+  resizePresetActive: { borderColor: Colors.primary },
+  resizePresetText:   { color: Colors.text.primary, fontFamily: 'Poppins_500Medium', fontSize: Layout.fontSize.sm },
   editorTitle: {
     flex: 1, textAlign: 'center', fontSize: Layout.fontSize.base,
     fontFamily: 'Poppins_600SemiBold', color: Colors.text.primary,
