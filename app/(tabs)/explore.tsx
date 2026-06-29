@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: Layout.fontSize.lg, fontFamily: 'Poppins_700Bold', paddingHorizontal: 24, marginBottom: 12, marginTop: 8 },
   featGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 24, gap: 12, marginBottom: 20 },
   featCard: {
-    width: (Layout.window.width - 48 - 12) / 2, aspectRatio: 1.25,
+    width: (Layout.window.width - 48 - 12) / 2, aspectRatio: 0.8,
     borderRadius: Layout.radius.lg, overflow: 'hidden', backgroundColor: Colors.dark.card,
     justifyContent: 'flex-end',
   },
