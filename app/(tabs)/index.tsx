@@ -194,7 +194,7 @@ export default function HomeScreen() {
               {/* Colored fallback (shows if the photo is missing) */}
               <LinearGradient colors={item.gradient as [string, string]} style={StyleSheet.absoluteFillObject} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
               {/* Showcase photo — whole image shown, never cropped (ratio matches card) */}
-              <Image source={item.image} style={StyleSheet.absoluteFillObject} resizeMode="contain" />
+              <Image source={item.image} style={[StyleSheet.absoluteFillObject, { backgroundColor: '#0E0E14' }]} resizeMode="contain" />
               {/* Subtle bottom scrim so the label stays readable over any photo */}
               <View style={styles.exploreScrim} pointerEvents="none" />
               <View style={styles.exploreOverlay}>
