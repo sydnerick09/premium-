@@ -25,6 +25,10 @@ const FEATURED = [
   { id: '4', title: 'Adjust',            sub: 'Fine-tune tones', img: require('../../assets/explore/explore-4.jpg'), route: '/(tabs)/create' },
 ];
 
+// Explicit card size (web can collapse aspectRatio cards with absolute children).
+const FEAT_W = (Layout.window.width - 48 - 12) / 2;
+const FEAT_H = Math.round(FEAT_W * 1200 / 896); // match the 896x1200 images
+
 const TOOLS = [
   { id: 'qr',    name: 'QR Scanner',   icon: 'qr-code-outline',         route: '/tools/qr'           },
   { id: 'scan',  name: 'Doc Scanner',  icon: 'document-text-outline',   route: '/tools/scanner'      },
@@ -140,13 +144,13 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: Layout.fontSize.lg, fontFamily: 'Poppins_700Bold', paddingHorizontal: 24, marginBottom: 12, marginTop: 8 },
   featGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 24, gap: 12, marginBottom: 20 },
   featCard: {
-    width: (Layout.window.width - 48 - 12) / 2, aspectRatio: 896 / 1200,
+    width: FEAT_W, height: FEAT_H,
     borderRadius: Layout.radius.xl, overflow: 'hidden', backgroundColor: Colors.dark.card,
-    justifyContent: 'flex-end', borderWidth: 0.5, borderColor: Colors.dark.border,
+    borderWidth: 0.5, borderColor: Colors.dark.border,
   },
-  featImg: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
+  featImg: { width: '100%', height: '100%' },
   featScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%' },
-  featText: { padding: 12 },
+  featText: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: 12 },
   featTitle: { fontSize: Layout.fontSize.base, fontFamily: 'Poppins_700Bold', color: Colors.white },
   featSub: { fontSize: Layout.fontSize.xs, fontFamily: 'Poppins_500Medium', color: 'rgba(255,255,255,0.92)', marginTop: 1 },
   toolsGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 24, gap: 12, marginBottom: 20 },
