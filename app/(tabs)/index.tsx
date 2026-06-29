@@ -190,10 +190,9 @@ export default function HomeScreen() {
               key={item.id}
               activeOpacity={0.9}
               onPress={() => openWithImage(item.route)}
-              style={styles.exploreCard}
+              // Card colour is the fallback (shown only if the photo can't load).
+              style={[styles.exploreCard, { backgroundColor: (item.gradient as string[])[0] }]}
             >
-              {/* Colored fallback (shows if the photo is missing) */}
-              <LinearGradient colors={item.gradient as [string, string]} style={StyleSheet.absoluteFillObject} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />
               {/* Showcase photo — whole image shown, never cropped (raw <img> + object-fit on web) */}
               <ShowcaseImage source={item.image} fit="contain" style={{ backgroundColor: '#0E0E14' }} />
               {/* Subtle bottom scrim so the label stays readable over any photo */}
