@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
   exploreUnderline: { width: 28, height: 3, borderRadius: 2, backgroundColor: Colors.primary, marginTop: 4 },
   exploreRow: { gap: 12, paddingHorizontal: 20, paddingBottom: 8 },
   exploreCard: {
-    width: 130, height: 180, borderRadius: Layout.radius.lg, overflow: 'hidden',
+    width: 150, height: 200, borderRadius: Layout.radius.lg, overflow: 'hidden',
   },
   exploreOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'flex-start', justifyContent: 'flex-end', padding: 14, gap: 6 },
   exploreScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 64, backgroundColor: 'rgba(0,0,0,0.38)' },
