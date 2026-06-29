@@ -346,7 +346,8 @@ const styles = StyleSheet.create({
   exploreUnderline: { width: 28, height: 3, borderRadius: 2, backgroundColor: Colors.primary, marginTop: 4 },
   exploreRow: { gap: 12, paddingHorizontal: 20, paddingBottom: 8 },
   exploreCard: {
-    width: 130, height: 180, borderRadius: Layout.radius.lg, overflow: 'hidden',
+    // Exact 896:1200 image ratio so the photo fits with NO cropping.
+    width: 150, height: Math.round(150 * 1200 / 896), borderRadius: Layout.radius.lg, overflow: 'hidden',
   },
   exploreScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '55%', backgroundColor: 'rgba(0,0,0,0.45)' },
   exploreOverlay: { ...StyleSheet.absoluteFillObject, alignItems: 'flex-start', justifyContent: 'flex-end', padding: 14, gap: 6 },
